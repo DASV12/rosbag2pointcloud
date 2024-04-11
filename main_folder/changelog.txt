@@ -1,0 +1,46 @@
+Mar 13
+File: sync_rosbag.py
+Add: read all intrinsics before start reading images
+Mar 14
+File: sync_rosbag.py
+Add: save images with GPS data. Longitude/Latitude: Degrees, minutes, seconds. Altitude: meters
+Add: save images with intrinsics
+Add: save right camera undistorted
+Add: save images in different folders per topic
+Pending: left camera intrinsics correction
+Mar 21
+
+# Check if /tf is in the topics list
+        if '/tf' in self.topics:
+            # Remove '/tf' from the topics list
+            self.topics.remove('/tf')
+            # Add /tf/odom and /tf/base_link if /tf is present
+            self.topics.extend(['/tf/odom', '/tf/base_link'])
+            
+self.filters_dict = {topic: message_filters.SimpleFilter() for topic in self.topics} #se modifica topics por self.topics
+crear condicional para cambiar el nombre del topic /tf según el child_frame_id a /tf/odom y
+/tf/base_linkpara sincronizar los mensajes de odom y base_link de tf como topics separados
+si no es odom o base_link pasa el while
+en este paso se reemplaza msg = transform, osea que se convierte de tf2_msgs.msg.TFMessage a geometry_msgs.msg.TransformStamped
+para que el filtro pueda interpretar el timestamp del mensaje
+-se sincroniza imagen con tf alcanzando 91% (1087/1185) (muchos tf se repiten en varias imágenes) de los frames en comparación con 10% (119/1185) sincronizando con GPS
+-se procesa la transformada map-odom-base_link-camara para obtener la posición de base_link en el plano de referencia map (comprobado con ground truth)
+-se guarda tf en EXIF de jpg
+Pending:
+-releer el rosbag en la misma ejecución para guardar todas las cámaras necesarias
+-corregir bug de que varias imagenes tienen el mismo tf (evaluar si pasa en imagenes en las que se sepa que el bot se mueve)
+
+Mar 31
+-se agrega el metodo seek(0) después de obtener todos los camera info necesarios para reiniciar la lectura del rosbag
+-Las imágenes de la camara ahora se guardan con el indice que tiene en el topic y no secuencialmente cada vez que sincroniza. Esto para poder debugear las imágenes perdidas. Se llega a la conclusión de que el código funciona bien y se pierden algunas imágenes que no tienen /odom y /base_link bajo criterio para sincronizar.
+-Se guarda el time stamp de cada imágen en el EXIF para debugear imágenes perdidas
+
+Apr 1
+-se reinicia archivo tf_data.txt en cada ejecución
+-se encuentra origen de bug: sincronizan 1091 imagenes pero en carpeta solo hay 1086. Motivo: una misma imágen se sincroniza varias veces con el mismo /tf. En el archivo tf_data.txt se observan todos los registros sincronizados
+-Se modifica dinámicamente el diccionario del filtro del sicronizador para que primero sincronice todas las imagenes de una sola camara con sus respectivos tf, luego reinicie el rosbag con seek(0) y sincronice el siguiente topic de camara requerido
+
+Apr 9
+-se crea mascara para carros, camiones, motos y personas con yolov8 y se reconstruye modelo con mascara aplicada obteniendo mejores resultados.
+-reinicia el rosbag para sincronizar imagenes con GPS pero no lo guarda en exif sino que crea un archivo de texto
+-Se logra escalar modelo con datos (x,y) de /tf. Falta obtener datos de z diferentes a 0 y encontrar solución para rotar y alinear modelo con Ground Truth.
