@@ -5,4 +5,4 @@ Then, this could be usea as input to train a NN.
 https://colmap.github.io/
 https://github.com/mwtarnowski/colmap-parameters
 
-Change from PC
+Change 2 from PC
