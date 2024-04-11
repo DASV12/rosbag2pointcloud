@@ -30,59 +30,59 @@ RUN sudo apt install -y python3 python3-pip
 # Install typer, tqdm, and zstandard de rosbag serializer
 RUN pip3 install typer tqdm zstandard piexif
 
-### Start COLMAP
+# ### Start COLMAP
 
-# Actualiza los paquetes e instala las dependencias necesarias de COLMAP
-# Para GPU: https://github.com/colmap/colmap/blob/main/docker/Dockerfile
-RUN sudo apt-get install -y \
-    git \
-    cmake \
-    ninja-build \
-    build-essential \
-    libboost-program-options-dev \
-    libboost-filesystem-dev \
-    libboost-graph-dev \
-    libboost-system-dev \
-    libeigen3-dev \
-    libflann-dev \
-    libfreeimage-dev \
-    libmetis-dev \
-    libgoogle-glog-dev \
-    libgtest-dev \
-    libsqlite3-dev \
-    libglew-dev \
-    qtbase5-dev \
-    libqt5opengl5-dev \
-    libcgal-dev \
-    libceres-dev
+# # Actualiza los paquetes e instala las dependencias necesarias de COLMAP
+# # Para GPU: https://github.com/colmap/colmap/blob/main/docker/Dockerfile
+# RUN sudo apt-get install -y \
+#     git \
+#     cmake \
+#     ninja-build \
+#     build-essential \
+#     libboost-program-options-dev \
+#     libboost-filesystem-dev \
+#     libboost-graph-dev \
+#     libboost-system-dev \
+#     libeigen3-dev \
+#     libflann-dev \
+#     libfreeimage-dev \
+#     libmetis-dev \
+#     libgoogle-glog-dev \
+#     libgtest-dev \
+#     libsqlite3-dev \
+#     libglew-dev \
+#     qtbase5-dev \
+#     libqt5opengl5-dev \
+#     libcgal-dev \
+#     libceres-dev
 
-# Install CUDA drivers
-RUN sudo apt-get install -y \
-    nvidia-cuda-toolkit \
-    nvidia-cuda-toolkit-gcc
+# # Install CUDA drivers
+# RUN sudo apt-get install -y \
+#     nvidia-cuda-toolkit \
+#     nvidia-cuda-toolkit-gcc
 
-RUN sudo apt-get install -y nvidia-driver-430
+# RUN sudo apt-get install -y nvidia-driver-430
 
-RUN sudo apt-get install gcc-10 g++-10 \
-&& export CC=/usr/bin/gcc-10 \
-&& export CXX=/usr/bin/g++-10 \
-&& export CUDAHOSTCXX=/usr/bin/g++-10
+# RUN sudo apt-get install gcc-10 g++-10 \
+# && export CC=/usr/bin/gcc-10 \
+# && export CXX=/usr/bin/g++-10 \
+# && export CUDAHOSTCXX=/usr/bin/g++-10
 
-# Install COLMAP
+# # Install COLMAP
 
-RUN sudo mkdir COLMAP \
-    && sudo chmod 777 COLMAP \
-    && cd COLMAP \
-    && git clone https://github.com/colmap/colmap.git \
-    && cd colmap \
-    && mkdir build && cd build \
-    && cmake .. -GNinja \
-    && ninja \
-    && sudo ninja install
-    #&& cmake .. && make -j$(nproc) \
-    #&& make install
+# RUN sudo mkdir COLMAP \
+#     && sudo chmod 777 COLMAP \
+#     && cd COLMAP \
+#     && git clone https://github.com/colmap/colmap.git \
+#     && cd colmap \
+#     && mkdir build && cd build \
+#     && cmake .. -GNinja \
+#     && ninja \
+#     && sudo ninja install
+#     #&& cmake .. && make -j$(nproc) \
+#     #&& make install
 
-### End COLMAP
+# ### End COLMAP
 ### COLMAP DOCKER
 ARG UBUNTU_VERSION=22.04
 ARG NVIDIA_CUDA_VERSION=12.3.1
