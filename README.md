@@ -29,8 +29,36 @@ To deal with this, the next pipeline is proposed:
 9. Run a mesh generation process from dense point clouf generated in last step
 10. Repeat the process for all the cameras
 All COLMAP CLI commands could be found at main_folder.
+### COLMAP CLI
+1. Crear carpetas, los archivos no mencionados acá se pueden dejar en otro directorio diferente.
+Por ahora solo camara derecha:
+	list.txt -> archivo de texto con lista de las 100 primeras imagenes de la camara derecha
+	right_camera
+		images -> todas las imagenes de solo la camara derecha
+		masks -> todas las mascaras de solo la camara derecha
+	sparse -> carpeta donde se creará el sparse pointcloud
+	dense -> carpeta donde se creará el dense pointcloud
+		
+2. Desde la carpeta "right_camera ejecutar:
+	colmap feature_extractor --database_path dataset.db --image_path images --ImageReader.mask_path masks --ImageReader.camera_model SIMPLE_PINHOLE --ImageReader.single_camera 1
+Si la GPU si es reconocida por el container este comando debería funcionar. Si sale error intentar agregar: --SiftExtraction.use_gpu 0
+
+3. colmap sequential_matcher --database_path dataset.db (--SiftExtraction.use_gpu 0)
+
+4. colmap mapper --database_path database.db --image_path images --output_path sparse --image_list_path list.txt
+
+5. Opcional para ver PLY del sparse model: colmap model_converter --input_path sparse/0 --output_path sparse/0/sparseModel.ply --output_type PLY
+Antes de ejecutar el comando revisar si en la carpeta sparse se creó la carpeta "0" o si los archivos "images, cameras, points3D" se crearon directamente en "sparse". En ese caso borrar "/0" de la linea de comandos.
+
+6. colmap image_undistorter --image_path images --input_path sparse/0 --output_path dense --output_type COLMAP
+
+7. colmap patch_match_stereo --workspace_path dense
+
+8. colmap stereo_fusion --workspace_path dense --output_path dense/fused.ply
 ### Notes
 Feature extraction and sequential matching can be accelerated using GPU, and cloud densification and mesh generation can only be performed using GPU.
 An Ubuntu-ROS2 container can only run COLMAP without GPU.
 A pure colmap/colmap:latest image can´t run Dataset Generation stage
 This project should be run in an nvidia/cuda image as suggested in the COLMAP repository. This option is still being tested due to issues with the version of the GPU used in this project.
+
+
