@@ -1,4 +1,4 @@
-# SfM
+																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																													# SfM
 The goal of this project is to generate a suitable dataset of images with the necessary information from a ROS2 rosbag and then run a command pipeline with the COLMAP tool to generate a point cloud of the scene. All this executed form a docker container.
 
 ## Dataset Generation
@@ -31,15 +31,15 @@ To deal with this, the next pipeline is proposed:
 All COLMAP CLI commands could be found at main_folder.
 ### COLMAP CLI
 1. Crear carpetas, los archivos no mencionados acá se pueden dejar en otro directorio diferente.
-Por ahora solo camara derecha:
+Por ahora solo camara derecha en folder "right_camera" crear:
 	list.txt -> archivo de texto con lista de las 100 primeras imagenes de la camara derecha
-	right_camera
+	camera_images
 		images -> todas las imagenes de solo la camara derecha
 		masks -> todas las mascaras de solo la camara derecha
 	sparse -> carpeta donde se creará el sparse pointcloud
 	dense -> carpeta donde se creará el dense pointcloud
 		
-2. Desde la carpeta "right_camera ejecutar:
+2. Desde la carpeta "camera_images" ejecutar:
 	colmap feature_extractor --database_path dataset.db --image_path images --ImageReader.mask_path masks --ImageReader.camera_model SIMPLE_PINHOLE --ImageReader.single_camera 1
 Si la GPU si es reconocida por el container este comando debería funcionar. Si sale error intentar agregar: --SiftExtraction.use_gpu 0
 
