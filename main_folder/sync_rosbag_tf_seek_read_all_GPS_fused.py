@@ -12,6 +12,8 @@ import typer
 import piexif
 import matplotlib.pyplot as plt
 import sys
+import torch
+from ultralytics import YOLO
 #import transforms3d.quaternions as quat
 #import tf.transformations as tf
 from cv_bridge import CvBridge
@@ -105,10 +107,10 @@ class RosBagSerializer(object):
         self.is_gps = bool
 
 
-        self.output_dir = os.path.join(os.path.expanduser('/workspaces/SfM/colmap_ws/rosbag_office'), 'images')
+        self.output_dir = os.path.join(os.path.expanduser('/workspaces/SfM2/colmap_ws/rosbag_office'), 'images')
         os.makedirs(self.output_dir, exist_ok=True)
 
-        self.imu_gps_output_dir = os.path.join(os.path.expanduser('/workspaces/SfM/colmap_ws'), 'rosbag_office')
+        self.imu_gps_output_dir = os.path.join(os.path.expanduser('/workspaces/SfM2/colmap_ws'), 'rosbag_office')
         os.makedirs(self.imu_gps_output_dir, exist_ok=True)
 
         tf_data_file = os.path.join(self.imu_gps_output_dir, 'tf_data.txt')
@@ -239,8 +241,8 @@ class RosBagSerializer(object):
                 print(img_data[topic])
 
                 # Mostrar imagenes
-                cv2.imshow(topic, img_data[topic])
-                cv2.waitKey(1)
+                #cv2.imshow(topic, img_data[topic])
+                #cv2.waitKey(1)
 
                 # # Guardar las imágenes descomprimidas en el directorio de salida
                 # for topic, img_data in img_data.items():
@@ -799,50 +801,50 @@ class RosBagSerializer(object):
                         self.i += 1
 
 
-        # Guardar ID de impagenes sincronizado con GPS en archivo de texto
-        self.is_gps = True
-        for image_raw_topic in [topic for topic in self.original_topics if '/image_raw' in topic]:
-            # Actualizar self.topics para sincronizar solo un /image_raw con /odom y /base_link
-            self.topics = [image_raw_topic, '/fix']
+        # # Guardar ID de impagenes sincronizado con GPS en archivo de texto
+        # self.is_gps = True
+        # for image_raw_topic in [topic for topic in self.original_topics if '/image_raw' in topic]:
+        #     # Actualizar self.topics para sincronizar solo un /image_raw con /odom y /base_link
+        #     self.topics = [image_raw_topic, '/fix']
             
-            # Actualizar self.filters_dict para incluir los nuevos temas
-            #self.filters_dict.update({topic: message_filters.SimpleFilter() for topic in self.topics})
-            self.filters_dict = {topic: message_filters.SimpleFilter() for topic in self.topics}
-            # Eliminar los filtros obsoletos de self.filters_dict
-            for topic in list(self.filters_dict.keys()):
-                if topic not in self.topics:
-                    del self.filters_dict[topic]
-            self.ts = message_filters.ApproximateTimeSynchronizer(list(self.filters_dict.values()), self.queue_size, self.time_delta)
-            self.ts.registerCallback(self.sync_callback)
-            self.rosbag.seek(0)  # Reiniciar la lectura al principio
-            self.i = 0
+        #     # Actualizar self.filters_dict para incluir los nuevos temas
+        #     #self.filters_dict.update({topic: message_filters.SimpleFilter() for topic in self.topics})
+        #     self.filters_dict = {topic: message_filters.SimpleFilter() for topic in self.topics}
+        #     # Eliminar los filtros obsoletos de self.filters_dict
+        #     for topic in list(self.filters_dict.keys()):
+        #         if topic not in self.topics:
+        #             del self.filters_dict[topic]
+        #     self.ts = message_filters.ApproximateTimeSynchronizer(list(self.filters_dict.values()), self.queue_size, self.time_delta)
+        #     self.ts.registerCallback(self.sync_callback)
+        #     self.rosbag.seek(0)  # Reiniciar la lectura al principio
+        #     self.i = 0
 
-            print("Sync images with GPS")
+        #     print("Sync images with GPS")
 
-            while self.rosbag.has_next():
-                (topic, data, t) = self.rosbag.read_next()
+        #     while self.rosbag.has_next():
+        #         (topic, data, t) = self.rosbag.read_next()
                 
-                skip_iteration = False
+        #         skip_iteration = False
 
-                #this is to avoid reading customized messages that can show errors
-                if topic not in self.topics:
-                    if topic != "/tf":
-                        continue
+        #         #this is to avoid reading customized messages that can show errors
+        #         if topic not in self.topics:
+        #             if topic != "/tf":
+        #                 continue
 
-                print(topic)
-                msg_type = get_message(self.topic_types_map[topic])
-                msg = deserialize_message(data, msg_type)
+        #         print(topic)
+        #         msg_type = get_message(self.topic_types_map[topic])
+        #         msg = deserialize_message(data, msg_type)
 
-                if topic in self.filters_dict:
-                    print("in filters_dict input")
-                    print(topic)
-                    print("in filters_dict output")
-                    filter_obj = self.filters_dict[topic]
-                    filter_obj.signalMessage(msg)
-                    #if topic == "/camera/color/image_raw":
-                    if topic.endswith("/image_raw"):
-                        self.i += 1
-        self.is_gps = False
+        #         if topic in self.filters_dict:
+        #             print("in filters_dict input")
+        #             print(topic)
+        #             print("in filters_dict output")
+        #             filter_obj = self.filters_dict[topic]
+        #             filter_obj.signalMessage(msg)
+        #             #if topic == "/camera/color/image_raw":
+        #             if topic.endswith("/image_raw"):
+        #                 self.i += 1
+        # self.is_gps = False
 
 
             # DEBUG
@@ -874,6 +876,110 @@ class RosBagSerializer(object):
         # # # Mostrar la imagen
         # plt.show()
 
+def create_masks():
+    # Load a pretrained YOLOv8n model
+    model = YOLO('yolov8n-seg.pt')
+
+    # Directorio base de entrada y salida
+    input_base_folder = '/workspaces/SfM2/colmap_ws/rosbag_office/images'
+    output_base_folder = '/workspaces/SfM2/colmap_ws/rosbag_office/masks'
+
+    # Iterar sobre las carpetas dentro del directorio base de entrada
+    for folder_name in os.listdir(input_base_folder):
+        # Obtener la ruta completa de la carpeta de entrada y salida para esta iteración
+        input_folder = os.path.join(input_base_folder, folder_name)
+        output_folder = os.path.join(output_base_folder, folder_name)
+
+        # Crear la carpeta de salida si no existe
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+
+        # Obtener la lista de archivos en el directorio de entrada y ordenarlos alfabéticamente
+        files = os.listdir(input_folder)
+        files.sort()
+
+        # Iterar sobre todas las imágenes en el directorio de entrada
+        for filename in files:
+            if filename.endswith('.jpg'):
+                # Cargar la imagen original
+                image_path = os.path.join(input_folder, filename)
+                image = cv2.imread(image_path)
+
+                # Ejecutar la segmentación en la imagen original
+                results = model.predict(image, save=False, imgsz=[736,1280])
+
+                # Inicializar la máscara combinada
+                combined_mask = torch.zeros([736,1280], dtype=torch.uint8)
+
+                # Iterar sobre los resultados
+                for result in results:
+                    # Verificar si se detectaron máscaras en el resultado
+                    if result.masks is not None:
+                        # Extraer las máscaras y las cajas de detección
+                        masks = result.masks.data
+                        boxes = result.boxes.data
+
+                        # Resto del código para procesar las máscaras
+                    else:
+                        print("No se detectaron máscaras en la imagen.")
+                        continue
+
+                    # Extraer las clases
+                    clss = boxes[:, 5]
+
+                    # Obtener índices de las clases de interés (personas, carros, camiones y motocicletas)
+                    indices_personas = torch.where(clss == 0)[0]
+                    indices_carros = torch.where(clss == 2)[0]
+                    indices_camiones = torch.where(clss == 7)[0]
+                    indices_motocicletas = torch.where(clss == 3)[0]
+
+                    # Combinar las máscaras de las clases de interés en una sola máscara para cada clase
+                    people_mask = torch.any(masks[indices_personas], dim=0).int() * 255
+                    car_mask = torch.any(masks[indices_carros], dim=0).int() * 255
+                    truck_mask = torch.any(masks[indices_camiones], dim=0).int() * 255
+                    motorcycle_mask = torch.any(masks[indices_motocicletas], dim=0).int() * 255
+
+                    # Sumar las máscaras combinadas a la máscara combinada general
+                    combined_mask += people_mask + car_mask + truck_mask + motorcycle_mask
+
+                # Escalar la máscara combinada para que coincida con las dimensiones de la imagen original
+                combined_resized_mask = cv2.resize(combined_mask.cpu().numpy(), (image.shape[1], image.shape[0]))
+
+                # Invertir los colores de la máscara combinada
+                combined_inverted_mask = cv2.bitwise_not(combined_resized_mask)
+
+                # Guardar la máscara combinada invertida con el mismo nombre que la imagen original
+                output_path = os.path.join(output_folder, filename.replace('jpg', 'jpg.png'))
+                cv2.imwrite(output_path, combined_inverted_mask)
+
+def create_image_lists(overlap=10):
+    input_folder= "/workspaces/SfM2/colmap_ws/rosbag_office/images"
+    output_base_folder= "/workspaces/SfM2/colmap_ws/rosbag_office/lists_folder"
+    for folder_name in os.listdir(input_folder):
+        image_folder = os.path.join(input_folder, folder_name)
+        output_folder = os.path.join(output_base_folder, folder_name)
+        
+        image_files = [f for f in os.listdir(image_folder) if f.endswith('.jpg')]
+        image_files.sort()
+
+        num_images = len(image_files)
+        num_lists = num_images // (100 - overlap)
+
+        os.makedirs(output_folder, exist_ok=True)
+
+        for i in range(num_lists):
+            start_index = i * (100 - overlap)
+            if i == (num_lists - 1):
+                end_index = num_images
+            else:
+                end_index = min((i + 1) * (100 - overlap) + overlap, num_images)
+            list_name = os.path.join(output_folder, f"list{i}.txt")
+
+            with open(list_name, 'w') as f:
+                for image_file in image_files[start_index:end_index]:
+                    f.write(image_file + '\n')
+
+            print(f"Created {list_name} with {end_index - start_index} images.")
 
 def main(
     sync_topics: tp.List[str] = [
@@ -907,7 +1013,7 @@ def main(
     @imshow: if True, shows the images
     """
 
-    bag_path = os.path.abspath(os.path.expanduser("/workspaces/SfM/colmap_ws/rosbag_office/rosbag/sfm_0.mcap"))
+    bag_path = os.path.abspath(os.path.expanduser("/workspaces/SfM2/colmap_ws/rosbag_office/rosbag/sfm_0.mcap"))
     
     if debug:
         import debugpy  # pylint: disable=import-error
@@ -925,6 +1031,8 @@ def main(
         imshow=imshow,
     )
     rosbag_serializer.process_rosbag()
+    create_masks()
+    create_image_lists()
 
 
 if __name__ == "__main__":

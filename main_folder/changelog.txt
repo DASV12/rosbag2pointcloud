@@ -47,3 +47,7 @@ Apr 9
 
 Apr 15
 -se modifica README.md
+
+Apr 18
+- creación función para crear listas con imagenes divididas por 100 con overlap de 10
+- fusion de syncronizer, con mask generator y list creator
