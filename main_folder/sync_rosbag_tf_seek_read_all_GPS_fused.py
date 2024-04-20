@@ -107,10 +107,10 @@ class RosBagSerializer(object):
         self.is_gps = bool
 
 
-        self.output_dir = os.path.join(os.path.expanduser('/workspaces/SfM2/colmap_ws/rosbag_office'), 'images')
+        self.output_dir = os.path.join(os.path.expanduser('/working/colmap_ws'), 'images')
         os.makedirs(self.output_dir, exist_ok=True)
 
-        self.imu_gps_output_dir = os.path.join(os.path.expanduser('/workspaces/SfM2/colmap_ws'), 'rosbag_office')
+        self.imu_gps_output_dir = os.path.join(os.path.expanduser('/working'), 'colmap_ws')
         os.makedirs(self.imu_gps_output_dir, exist_ok=True)
 
         tf_data_file = os.path.join(self.imu_gps_output_dir, 'tf_data.txt')
@@ -878,11 +878,11 @@ class RosBagSerializer(object):
 
 def create_masks():
     # Load a pretrained YOLOv8n model
-    model = YOLO('yolov8n-seg.pt')
+    model = YOLO('yolov8x-seg.pt')
 
     # Directorio base de entrada y salida
-    input_base_folder = '/workspaces/SfM2/colmap_ws/rosbag_office/images'
-    output_base_folder = '/workspaces/SfM2/colmap_ws/rosbag_office/masks'
+    input_base_folder = '/working/colmap_ws/images'
+    output_base_folder = '/working/colmap_ws/masks'
 
     # Iterar sobre las carpetas dentro del directorio base de entrada
     for folder_name in os.listdir(input_base_folder):
@@ -909,15 +909,15 @@ def create_masks():
                 results = model.predict(image, save=False, imgsz=[736,1280])
 
                 # Inicializar la máscara combinada
-                combined_mask = torch.zeros([736,1280], dtype=torch.uint8)
+                combined_mask = torch.zeros([736,1280], dtype=torch.uint8).to('cuda')
 
                 # Iterar sobre los resultados
                 for result in results:
                     # Verificar si se detectaron máscaras en el resultado
                     if result.masks is not None:
                         # Extraer las máscaras y las cajas de detección
-                        masks = result.masks.data
-                        boxes = result.boxes.data
+                        masks = result.masks.data.to('cuda')
+                        boxes = result.boxes.data.to('cuda')
 
                         # Resto del código para procesar las máscaras
                     else:
@@ -953,8 +953,8 @@ def create_masks():
                 cv2.imwrite(output_path, combined_inverted_mask)
 
 def create_image_lists(overlap=10):
-    input_folder= "/workspaces/SfM2/colmap_ws/rosbag_office/images"
-    output_base_folder= "/workspaces/SfM2/colmap_ws/rosbag_office/lists_folder"
+    input_folder= "/working/colmap_ws/images"
+    output_base_folder= "/working/colmap_ws/lists_folder"
     for folder_name in os.listdir(input_folder):
         image_folder = os.path.join(input_folder, folder_name)
         output_folder = os.path.join(output_base_folder, folder_name)
@@ -1013,7 +1013,7 @@ def main(
     @imshow: if True, shows the images
     """
 
-    bag_path = os.path.abspath(os.path.expanduser("/workspaces/SfM2/colmap_ws/rosbag_office/rosbag/sfm_0.mcap"))
+    bag_path = os.path.abspath(os.path.expanduser("/working/main_folder/sfm_0.mcap"))
     
     if debug:
         import debugpy  # pylint: disable=import-error

@@ -61,4 +61,15 @@ An Ubuntu-ROS2 container can only run COLMAP without GPU.
 A pure colmap/colmap:latest image can´t run Dataset Generation stage
 This project should be run in an nvidia/cuda image as suggested in the COLMAP repository. This option is still being tested due to issues with the version of the GPU used in this project.
 
+## Run Project
+### Docker Container
+From SfM_CUDA path run:
+docker build -t="colmap:latest" .
+-# In some cases, you may have to explicitly specify the compute architecture:
+-#   docker build -t="colmap:latest" --build-arg CUDA_ARCHITECTURES=86 .
+docker run --gpus all -w /working -v $1:/working -it colmap:latest
+-# Replace with your working directory (path to cloned repository) as this: docker run --gpus all -w /working -v /home/user/Documents/.../SfM_CUDA:/working -it colmap:latest
+### Dataset generator
+Download your rosbag under /main_folder and from Sfm_CUDA run:
+python3 main_folder/sync_rosbag_tf_seek_read_all_GPS_fused.py
 
