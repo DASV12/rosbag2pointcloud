@@ -64,12 +64,22 @@ This project should be run in an nvidia/cuda image as suggested in the COLMAP re
 ## Run Project
 ### Docker Container
 From SfM_CUDA path run:
-docker build -t="colmap:latest" .
+docker build -t="colmap:cuda" .
 -# In some cases, you may have to explicitly specify the compute architecture:
 -#   docker build -t="colmap:latest" --build-arg CUDA_ARCHITECTURES=86 .
-docker run --gpus all -w /working -v $1:/working -it colmap:latest
--# Replace with your working directory (path to cloned repository) as this: docker run --gpus all -w /working -v /home/user/Documents/.../SfM_CUDA:/working -it colmap:latest
+docker run --gpus all -w /working -v $1:/working -it colmap:cuda
+-# Replace with your working directory (path to cloned repository) as this: docker run --gpus all -w /working -v /home/user/Documents/.../SfM_CUDA:/working -it colmap:cuda
+
+docker run \
+    -e QT_XCB_GL_INTEGRATION=xcb_egl \
+    -e DISPLAY=:0 \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    --gpus all \
+    --privileged \
+    -it colmap/colmap:latest \
+    colmap gui
 ### Dataset generator
 Download your rosbag under /main_folder and from Sfm_CUDA run:
 python3 main_folder/sync_rosbag_tf_seek_read_all_GPS_fused.py
+python3 main_folder/colmap_pipeline.py
 

@@ -181,6 +181,8 @@ class RosBagSerializer(object):
 
         self.video_writers = {}
         self.i = 0  # Inicializar el contador
+        self.id = 1
+        self.prev_image_filename = None
 
 
     def sync_callback(self, *msgs):
@@ -195,6 +197,30 @@ class RosBagSerializer(object):
         imu_gps_data = {}
         gps_data = {}
         tf_data = {}
+
+        def multiply_quaternions(q1, q2):
+            """
+            Multiplica dos cuaterniones y devuelve el resultado.
+            
+            Args:
+            - q1 (array): Cuaternión en forma de array [w, x, y, z].
+            - q2 (array): Cuaternión en forma de array [w, x, y, z].
+            
+            Returns:
+            - array: Cuaternión resultante de la multiplicación [w, x, y, z].
+            """
+            # Desempaqueta los componentes de los cuaterniones
+            w1, x1, y1, z1 = q1
+            w2, x2, y2, z2 = q2
+            
+            # Calcula el producto de los cuaterniones
+            w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
+            x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
+            y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
+            z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
+            
+            # Retorna el cuaternión resultante
+            return np.array([w, x, y, z])
 
         
 
@@ -280,6 +306,7 @@ class RosBagSerializer(object):
                     w_odom = tf_data["rotation"]["w"]
                     # Convertir el cuaternión a ángulos de Euler (en radianes)
                     q = np.array([w_odom, rx_odom, ry_odom, rz_odom])
+                    q_odom = q
                     siny_cosp = 2 * (q[0] * q[3] + q[1] * q[2])
                     cosy_cosp = 1 - 2 * (q[2] ** 2 + q[3] ** 2)
                     rz_e_odom = np.arctan2(siny_cosp, cosy_cosp)
@@ -298,6 +325,7 @@ class RosBagSerializer(object):
                     w_base_link = tf_data["rotation"]["w"]
                     # Convertir el cuaternión a ángulos de Euler (en radianes)
                     q = np.array([w_base_link, rx_base_link, ry_base_link, rz_base_link])
+                    q_base = q
                     siny_cosp = 2 * (q[0] * q[3] + q[1] * q[2])
                     cosy_cosp = 1 - 2 * (q[2] ** 2 + q[3] ** 2)
                     rz_e_base_link = np.arctan2(siny_cosp, cosy_cosp)
@@ -320,10 +348,55 @@ class RosBagSerializer(object):
             print(topic)
             if "/video_mapping/left/image_raw" in topic:
                 folder_name = "left"
+                #base_link to camera aproximate
+                x_left = 0.12
+                y_left = 0.17
+                z_left = 0.42
+                #quaternion
+                rx_left = -0.8163137308057972
+                ry_left = 0.0
+                rz_left = 0.0
+                rw_left = 0.5776087714863067
+                print("before qleft")
+                q_left = np.array([rw_left, rx_left, ry_left, rz_left])
+                print("after qleft")
+
             elif "/video_mapping/right/image_raw" in topic:
                 folder_name = "right"
+                x_right = 0.12
+                y_right = -0.17
+                z_right = 0.42
+                rx_right = -0.0006500096108334489
+                ry_right = -0.8163134720127956
+                rz_right = 0.5776085883690786
+                rw_right = 0.0004599349963122468
+                print("before qright")
+                q_right = np.array([rw_right, rx_right, ry_right, rz_right])
+                print("after qright")
+
             elif "/camera/color/image_raw" in topic:
                 folder_name = "front"
+                x_front = 0.21
+                y_front = -0.041
+                z_front = 0.443
+                # rx_front = -0.2 -90
+                # ry_front = 15.6 + 90
+                # rz_front = 0
+                rx0_front = -0.0014452419080478315
+                ry0_front = 0.1353299789430733
+                rz0_front = 0.000197400740513704
+                rw0_front = 0.9907995100463273
+                print("before qfront0")
+                q0_front = np.array([rw0_front, rx0_front, ry0_front, rz0_front])
+                print("after qfront0")
+                rx1_front = -0.5
+                ry1_front = 0.4999999999999999
+                rz1_front = -0.5
+                rw1_front = 0.5000000000000001
+                print("before qfront1")
+                q1_front = np.array([rw1_front, rx1_front, ry1_front, rz1_front])
+                print("after qfront1")
+
             else:
                 folder_name = "unknown"
             
@@ -331,6 +404,7 @@ class RosBagSerializer(object):
                 os.makedirs(os.path.join(self.output_dir, folder_name))
 
             image_filename = f"{folder_name}_image_{self.i+1:04d}.jpg"
+            #print(image_filename)
             image_path = os.path.join(self.output_dir, folder_name, image_filename)
             if not self.is_gps:
                 cv2.imwrite(image_path, img_data)
@@ -427,8 +501,41 @@ class RosBagSerializer(object):
                 pose_base_link = np.array([x_base_link, y_base_link])
                 R_base_link = np.dot(Rz_odom, pose_base_link)
 
-                pose_x = pose_odom[0] + R_base_link[0]
-                pose_y = pose_odom[1] + R_base_link[1]
+                pose_x_base = pose_odom[0] + R_base_link[0]
+                pose_y_base = pose_odom[1] + R_base_link[1]
+                pose_base = np.array([pose_x_base, pose_y_base])
+                #
+                Rz_base_link = np.array([[np.cos(rz_e_base_link), -np.sin(rz_e_base_link)],
+                                    [np.sin(rz_e_base_link), np.cos(rz_e_base_link)]])
+                q_odom_base = multiply_quaternions(q_odom, q_base)
+                #rot base y camaras
+                if "/video_mapping/left/image_raw" in topic:
+                    traslation_left_camera = np.array([x_left, y_left])
+                    t_left_camera = np.dot(Rz_base_link, traslation_left_camera)
+                    pose_x = pose_base[0] + t_left_camera[0]
+                    pose_y = pose_base[1] + t_left_camera[1]
+                    pose_z = z_left
+                    orientation = multiply_quaternions(q_odom_base, q_left)
+                
+                elif "/video_mapping/right/image_raw" in topic:
+                    traslation_right_camera = np.array([x_right, y_right])
+                    t_right_camera = np.dot(Rz_base_link, traslation_right_camera)
+                    pose_x = pose_base[0] + t_right_camera[0]
+                    pose_y = pose_base[1] + t_right_camera[1]
+                    pose_z = z_right
+                    orientation = multiply_quaternions(q_odom_base, q_right)
+
+                elif "/camera/color/image_raw" in topic:
+                    traslation_front_camera = np.array([x_front, y_front])
+                    t_front_camera = np.dot(Rz_base_link, traslation_front_camera)
+                    pose_x = pose_base[0] + t_front_camera[0]
+                    pose_y = pose_base[1] + t_front_camera[1]
+                    pose_z = z_front
+                    orientation = multiply_quaternions(q_odom_base, q0_front)
+                    orientation = multiply_quaternions(orientation, q1_front)
+
+
+
                 #self.pose_x_values.append(pose_x)
                 #self.pose_y_values.append(pose_y)
 
@@ -438,10 +545,15 @@ class RosBagSerializer(object):
                 # pose_y = pose[1]
                 # pose_x = x_base_link
                 # pose_y = y_base_link
-                pose_z = 0
+                #pose_z = 0
                 print(pose_x)
                 print(pose_y)
                 print(pose_z)
+                print(orientation)
+                #print("Press Enter to continue...")
+
+                # Wait for the user to press Enter
+                #input()
 
                 #enmascarar coordenadas cartesianas como GPS para poder guardar en exif
                 deg_x = int(pose_x)
@@ -463,9 +575,13 @@ class RosBagSerializer(object):
                 # aunque realmente provienen de coordenadas cartesinas con "map" como referencia
                 # Ejm: LAT=78.753 (metros desde el 0,0 del map del rosbag), LON=103.704, ALT=1500.000
                 tf_file_path = os.path.join(self.imu_gps_output_dir, "tf_data.txt")
-                with open(tf_file_path, "a") as tf_file:
-                    tf_info = f"{image_filename} {pose_x} {pose_y} {pose_z}\n"
-                    tf_file.write(tf_info)
+                if self.prev_image_filename != image_filename:
+                    with open(tf_file_path, "a") as tf_file:
+                        orientation_str = ' '.join(map(str, orientation))
+                        tf_info = f"{self.id} {orientation_str} {pose_x} {pose_y} {pose_z} {1} {folder_name}/{image_filename}\n\n"
+                        tf_file.write(tf_info)
+                    self.prev_image_filename = image_filename
+                    self.id += 1
                     #gps_file.write(f"{image_filename}, GPS Data: {gps_data}\n")
                 # Save updated EXIF data back to the image
                 exif_bytes = piexif.dump(exif_dict)
@@ -477,6 +593,7 @@ class RosBagSerializer(object):
 
         # plt.show()
         # plt.ioff()
+        
 
     def parse_msg(self, msg: tp.Any, topic: str) -> tp.Dict[str, tp.Any]:
         """
@@ -985,7 +1102,7 @@ def main(
     sync_topics: tp.List[str] = [
         # include the image_raw and the camera_info of the cameras you want to synchronize
         # include /fix if you want GPS data
-        "/camera/color/image_raw",
+        #"/camera/color/image_raw",
         #"/camera/color/camera_info",
         #"/video_mapping/left/image_raw",
         #"/video_mapping/left/camera_info",
