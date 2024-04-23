@@ -353,10 +353,12 @@ class RosBagSerializer(object):
                 y_left = 0.17
                 z_left = 0.42
                 #quaternion
-                rx_left = -0.8163137308057972
+                rx_left = -0.7071068
                 ry_left = 0.0
                 rz_left = 0.0
-                rw_left = 0.5776087714863067
+                rw_left = 0.7071068
+                # original: q= x-0.8163137, y0, z0, w0.5776088, x: -109.4349378, y: 0, z: 0
+                # corrected extrinsics -0.7071068, 0, 0, 0.7071068 x: -90, y:0, z:0
                 print("before qleft")
                 q_left = np.array([rw_left, rx_left, ry_left, rz_left])
                 print("after qleft")
@@ -366,10 +368,12 @@ class RosBagSerializer(object):
                 x_right = 0.12
                 y_right = -0.17
                 z_right = 0.42
-                rx_right = -0.0006500096108334489
-                ry_right = -0.8163134720127956
-                rz_right = 0.5776085883690786
-                rw_right = 0.0004599349963122468
+                rx_right = 0.0
+                ry_right = 0.7071068
+                rz_right = -0.7071068
+                rw_right = 0.0
+                # original: q= -0.0006500096108334489, -0.8163134720127956, 0.5776085883690786, 0.0004599349963122468,  x: 109.4349605, y: -0.0860471, z: -179.969639 
+                # corrected extrinsics 0, 0.7071068, -0.7071068, 0 x: 90, y:0, z:-180
                 print("before qright")
                 q_right = np.array([rw_right, rx_right, ry_right, rz_right])
                 print("after qright")
@@ -1094,7 +1098,7 @@ def create_image_lists(overlap=10):
 
             with open(list_name, 'w') as f:
                 for image_file in image_files[start_index:end_index]:
-                    f.write(image_file + '\n')
+                    f.write(os.path.join(folder_name, image_file) + '\n')
 
             print(f"Created {list_name} with {end_index - start_index} images.")
 
