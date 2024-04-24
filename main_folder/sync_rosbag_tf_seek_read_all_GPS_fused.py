@@ -542,6 +542,40 @@ class RosBagSerializer(object):
 
                 #self.pose_x_values.append(pose_x)
                 #self.pose_y_values.append(pose_y)
+                # Vector de traslación T
+                T = np.array([pose_x, pose_y, pose_z])
+
+                # Cuaternión q (qxyz)
+                q = orientation
+
+                # Normaliza el cuaternión
+                q /= np.linalg.norm(q)
+
+                # # Matriz de rotación a partir del cuaternión
+                # R = np.array([
+                #     [1 - 2*q[2]**2 - 2*q[3]**2, 2*q[1]*q[2] - 2*q[0]*q[3], 2*q[1]*q[3] + 2*q[0]*q[2]],
+                #     [2*q[1]*q[2] + 2*q[0]*q[3], 1 - 2*q[1]**2 - 2*q[3]**2, 2*q[2]*q[3] - 2*q[0]*q[1]],
+                #     [2*q[1]*q[3] - 2*q[0]*q[2], 2*q[2]*q[3] + 2*q[0]*q[1], 1 - 2*q[1]**2 - 2*q[2]**2]
+                # ])
+
+
+                qw, qx, qy, qz = q
+
+                # Calcula los elementos de la matriz de rotación
+                R = np.array([
+                    [1 - 2*qy**2 - 2*qz**2, 2*qx*qy - 2*qz*qw, 2*qx*qz + 2*qy*qw],
+                    [2*qx*qy + 2*qz*qw, 1 - 2*qx**2 - 2*qz**2, 2*qy*qz - 2*qx*qw],
+                    [2*qx*qz - 2*qy*qw, 2*qy*qz + 2*qx*qw, 1 - 2*qx**2 - 2*qy**2]
+                ])
+
+                # Transpone la matriz de rotación
+                R_transpose = R.T
+
+                # Invierte la matriz de rotación transpuesta
+                R_inverse = np.linalg.inv(R_transpose)
+
+                # Calcula R^T * T
+                pose_colmap = np.dot(R_inverse, T)
 
                 
 
@@ -582,7 +616,8 @@ class RosBagSerializer(object):
                 if self.prev_image_filename != image_filename:
                     with open(tf_file_path, "a") as tf_file:
                         orientation_str = ' '.join(map(str, orientation))
-                        tf_info = f"{self.id} {orientation_str} {pose_x} {pose_y} {pose_z} {1} {folder_name}/{image_filename}\n\n"
+                        #tf_info = f"{self.id} {orientation_str} {pose_x} {pose_y} {pose_z} {1} {folder_name}/{image_filename}\n\n"
+                        tf_info = f"{self.id} {orientation_str} {pose_colmap[0]} {pose_colmap[1]} {pose_colmap[2]} {1} {folder_name}/{image_filename}\n\n"
                         tf_file.write(tf_info)
                     self.prev_image_filename = image_filename
                     self.id += 1
@@ -1152,8 +1187,8 @@ def main(
         imshow=imshow,
     )
     rosbag_serializer.process_rosbag()
-    create_masks()
-    create_image_lists()
+    #create_masks()
+    #create_image_lists()
 
 
 if __name__ == "__main__":
