@@ -76,6 +76,8 @@
 # colmap model_aligner --input_path /working/colmap_ws/sparse/right/012/0 --output_path /working/colmap_ws/sparse/right/012/georeferenced --database_path /working/colmap_ws/dataset.db --ref_is_gps 0 --alignment_type plane --merge_image_and_ref_origins 1
 # olmap model_merger --input_path1 sparse/012 --input_path2 sparse/list3/0 --output_path sparse/01234
 # colmap point_triangulator --database_path colmap_ws/dataset.db  --image_path colmap_ws/images --input_path colmap_ws/triangulator/ --output_path colmap_ws/sparse
+# colmap point_triangulator --database_path colmap_ws/dataset.db  --image_path colmap_ws/images --input_path colmap_ws/sparse/it1/bundle/ --output_path colmap_ws/sparse/it2 
+# colmap bundle_adjuster --input_path colmap_ws/sparse/it1/bundle/ --output_path 
 
 import os
 import subprocess

@@ -198,6 +198,18 @@ class RosBagSerializer(object):
         gps_data = {}
         tf_data = {}
 
+        def rotation_matrix_to_quaternion(R):
+            trace = np.trace(R)
+            r = np.sqrt(1 + trace)
+            s = 1 / (2 * r)
+            
+            qw = r / 2
+            qx = s * (R[2, 1] - R[1, 2])
+            qy = s * (R[0, 2] - R[2, 0])
+            qz = s * (R[1, 0] - R[0, 1])
+
+            return np.array([qw, qx, qy, qz])
+
         def multiply_quaternions(q1, q2):
             """
             Multiplica dos cuaterniones y devuelve el resultado.
@@ -549,7 +561,7 @@ class RosBagSerializer(object):
                 q = orientation
 
                 # Normaliza el cuaternión
-                q /= np.linalg.norm(q)
+                # q /= np.linalg.norm(q)
 
                 # # Matriz de rotación a partir del cuaternión
                 # R = np.array([
@@ -575,7 +587,10 @@ class RosBagSerializer(object):
                 R_inverse = np.linalg.inv(R_transpose)
 
                 # Calcula R^T * T
-                pose_colmap = np.dot(R_inverse, T)
+                pose_colmap = np.dot(-R_transpose, T)
+
+                # Convierte la matriz de rotación inversa en un cuaternión
+                q_inverse = rotation_matrix_to_quaternion(R_transpose)
 
                 
 
@@ -615,7 +630,8 @@ class RosBagSerializer(object):
                 tf_file_path = os.path.join(self.imu_gps_output_dir, "tf_data.txt")
                 if self.prev_image_filename != image_filename:
                     with open(tf_file_path, "a") as tf_file:
-                        orientation_str = ' '.join(map(str, orientation))
+                        #orientation_str = ' '.join(map(str, orientation))
+                        orientation_str = ' '.join(map(str, q_inverse))
                         #tf_info = f"{self.id} {orientation_str} {pose_x} {pose_y} {pose_z} {1} {folder_name}/{image_filename}\n\n"
                         tf_info = f"{self.id} {orientation_str} {pose_colmap[0]} {pose_colmap[1]} {pose_colmap[2]} {1} {folder_name}/{image_filename}\n\n"
                         tf_file.write(tf_info)
