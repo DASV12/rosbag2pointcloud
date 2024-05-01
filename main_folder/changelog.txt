@@ -44,3 +44,10 @@ Apr 9
 -se crea mascara para carros, camiones, motos y personas con yolov8 y se reconstruye modelo con mascara aplicada obteniendo mejores resultados.
 -reinicia el rosbag para sincronizar imagenes con GPS pero no lo guarda en exif sino que crea un archivo de texto
 -Se logra escalar modelo con datos (x,y) de /tf. Falta obtener datos de z diferentes a 0 y encontrar solución para rotar y alinear modelo con Ground Truth.
+
+Apr 15
+-se modifica README.md
+
+Apr 18
+- creación función para crear listas con imagenes divididas por 100 con overlap de 10
+- fusion de syncronizer, con mask generator y list creator

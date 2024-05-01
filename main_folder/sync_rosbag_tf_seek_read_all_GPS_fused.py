@@ -12,6 +12,8 @@ import typer
 import piexif
 import matplotlib.pyplot as plt
 import sys
+import torch
+from ultralytics import YOLO
 #import transforms3d.quaternions as quat
 #import tf.transformations as tf
 from cv_bridge import CvBridge
@@ -105,10 +107,10 @@ class RosBagSerializer(object):
         self.is_gps = bool
 
 
-        self.output_dir = os.path.join(os.path.expanduser('/workspaces/SfM/colmap_ws/rosbag_office'), 'images')
+        self.output_dir = os.path.join(os.path.expanduser('/working/colmap_ws'), 'images')
         os.makedirs(self.output_dir, exist_ok=True)
 
-        self.imu_gps_output_dir = os.path.join(os.path.expanduser('/workspaces/SfM/colmap_ws'), 'rosbag_office')
+        self.imu_gps_output_dir = os.path.join(os.path.expanduser('/working'), 'colmap_ws')
         os.makedirs(self.imu_gps_output_dir, exist_ok=True)
 
         tf_data_file = os.path.join(self.imu_gps_output_dir, 'tf_data.txt')
@@ -179,6 +181,8 @@ class RosBagSerializer(object):
 
         self.video_writers = {}
         self.i = 0  # Inicializar el contador
+        self.id = 1
+        self.prev_image_filename = None
 
 
     def sync_callback(self, *msgs):
@@ -193,6 +197,42 @@ class RosBagSerializer(object):
         imu_gps_data = {}
         gps_data = {}
         tf_data = {}
+
+        def rotation_matrix_to_quaternion(R):
+            trace = np.trace(R)
+            r = np.sqrt(1 + trace)
+            s = 1 / (2 * r)
+            
+            qw = r / 2
+            qx = s * (R[2, 1] - R[1, 2])
+            qy = s * (R[0, 2] - R[2, 0])
+            qz = s * (R[1, 0] - R[0, 1])
+
+            return np.array([qw, qx, qy, qz])
+
+        def multiply_quaternions(q1, q2):
+            """
+            Multiplica dos cuaterniones y devuelve el resultado.
+            
+            Args:
+            - q1 (array): Cuaternión en forma de array [w, x, y, z].
+            - q2 (array): Cuaternión en forma de array [w, x, y, z].
+            
+            Returns:
+            - array: Cuaternión resultante de la multiplicación [w, x, y, z].
+            """
+            # Desempaqueta los componentes de los cuaterniones
+            w1, x1, y1, z1 = q1
+            w2, x2, y2, z2 = q2
+            
+            # Calcula el producto de los cuaterniones
+            w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
+            x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
+            y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
+            z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
+            
+            # Retorna el cuaternión resultante
+            return np.array([w, x, y, z])
 
         
 
@@ -239,8 +279,8 @@ class RosBagSerializer(object):
                 print(img_data[topic])
 
                 # Mostrar imagenes
-                cv2.imshow(topic, img_data[topic])
-                cv2.waitKey(1)
+                #cv2.imshow(topic, img_data[topic])
+                #cv2.waitKey(1)
 
                 # # Guardar las imágenes descomprimidas en el directorio de salida
                 # for topic, img_data in img_data.items():
@@ -278,6 +318,7 @@ class RosBagSerializer(object):
                     w_odom = tf_data["rotation"]["w"]
                     # Convertir el cuaternión a ángulos de Euler (en radianes)
                     q = np.array([w_odom, rx_odom, ry_odom, rz_odom])
+                    q_odom = q
                     siny_cosp = 2 * (q[0] * q[3] + q[1] * q[2])
                     cosy_cosp = 1 - 2 * (q[2] ** 2 + q[3] ** 2)
                     rz_e_odom = np.arctan2(siny_cosp, cosy_cosp)
@@ -296,6 +337,7 @@ class RosBagSerializer(object):
                     w_base_link = tf_data["rotation"]["w"]
                     # Convertir el cuaternión a ángulos de Euler (en radianes)
                     q = np.array([w_base_link, rx_base_link, ry_base_link, rz_base_link])
+                    q_base = q
                     siny_cosp = 2 * (q[0] * q[3] + q[1] * q[2])
                     cosy_cosp = 1 - 2 * (q[2] ** 2 + q[3] ** 2)
                     rz_e_base_link = np.arctan2(siny_cosp, cosy_cosp)
@@ -318,10 +360,59 @@ class RosBagSerializer(object):
             print(topic)
             if "/video_mapping/left/image_raw" in topic:
                 folder_name = "left"
+                #base_link to camera aproximate
+                x_left = 0.12
+                y_left = 0.17
+                z_left = 0.42
+                #quaternion
+                rx_left = -0.7071068
+                ry_left = 0.0
+                rz_left = 0.0
+                rw_left = 0.7071068
+                # original: q= x-0.8163137, y0, z0, w0.5776088, x: -109.4349378, y: 0, z: 0
+                # corrected extrinsics -0.7071068, 0, 0, 0.7071068 x: -90, y:0, z:0
+                print("before qleft")
+                q_left = np.array([rw_left, rx_left, ry_left, rz_left])
+                print("after qleft")
+
             elif "/video_mapping/right/image_raw" in topic:
                 folder_name = "right"
+                x_right = 0.12
+                y_right = -0.17
+                z_right = 0.42
+                rx_right = 0.0
+                ry_right = 0.7071068
+                rz_right = -0.7071068
+                rw_right = 0.0
+                # original: q= -0.0006500096108334489, -0.8163134720127956, 0.5776085883690786, 0.0004599349963122468,  x: 109.4349605, y: -0.0860471, z: -179.969639 
+                # corrected extrinsics 0, 0.7071068, -0.7071068, 0 x: 90, y:0, z:-180
+                print("before qright")
+                q_right = np.array([rw_right, rx_right, ry_right, rz_right])
+                print("after qright")
+
             elif "/camera/color/image_raw" in topic:
                 folder_name = "front"
+                x_front = 0.21
+                y_front = -0.041
+                z_front = 0.443
+                # rx_front = -0.2 -90
+                # ry_front = 15.6 + 90
+                # rz_front = 0
+                rx0_front = -0.0014452419080478315
+                ry0_front = 0.1353299789430733
+                rz0_front = 0.000197400740513704
+                rw0_front = 0.9907995100463273
+                print("before qfront0")
+                q0_front = np.array([rw0_front, rx0_front, ry0_front, rz0_front])
+                print("after qfront0")
+                rx1_front = -0.5
+                ry1_front = 0.4999999999999999
+                rz1_front = -0.5
+                rw1_front = 0.5000000000000001
+                print("before qfront1")
+                q1_front = np.array([rw1_front, rx1_front, ry1_front, rz1_front])
+                print("after qfront1")
+
             else:
                 folder_name = "unknown"
             
@@ -329,6 +420,7 @@ class RosBagSerializer(object):
                 os.makedirs(os.path.join(self.output_dir, folder_name))
 
             image_filename = f"{folder_name}_image_{self.i+1:04d}.jpg"
+            #print(image_filename)
             image_path = os.path.join(self.output_dir, folder_name, image_filename)
             if not self.is_gps:
                 cv2.imwrite(image_path, img_data)
@@ -425,10 +517,80 @@ class RosBagSerializer(object):
                 pose_base_link = np.array([x_base_link, y_base_link])
                 R_base_link = np.dot(Rz_odom, pose_base_link)
 
-                pose_x = pose_odom[0] + R_base_link[0]
-                pose_y = pose_odom[1] + R_base_link[1]
+                pose_x_base = pose_odom[0] + R_base_link[0]
+                pose_y_base = pose_odom[1] + R_base_link[1]
+                pose_base = np.array([pose_x_base, pose_y_base])
+                #
+                Rz_base_link = np.array([[np.cos(rz_e_base_link), -np.sin(rz_e_base_link)],
+                                    [np.sin(rz_e_base_link), np.cos(rz_e_base_link)]])
+                q_odom_base = multiply_quaternions(q_odom, q_base)
+                #rot base y camaras
+                if "/video_mapping/left/image_raw" in topic:
+                    traslation_left_camera = np.array([x_left, y_left])
+                    t_left_camera = np.dot(Rz_base_link, traslation_left_camera)
+                    pose_x = pose_base[0] + t_left_camera[0]
+                    pose_y = pose_base[1] + t_left_camera[1]
+                    pose_z = z_left
+                    orientation = multiply_quaternions(q_odom_base, q_left)
+                
+                elif "/video_mapping/right/image_raw" in topic:
+                    traslation_right_camera = np.array([x_right, y_right])
+                    t_right_camera = np.dot(Rz_base_link, traslation_right_camera)
+                    pose_x = pose_base[0] + t_right_camera[0]
+                    pose_y = pose_base[1] + t_right_camera[1]
+                    pose_z = z_right
+                    orientation = multiply_quaternions(q_odom_base, q_right)
+
+                elif "/camera/color/image_raw" in topic:
+                    traslation_front_camera = np.array([x_front, y_front])
+                    t_front_camera = np.dot(Rz_base_link, traslation_front_camera)
+                    pose_x = pose_base[0] + t_front_camera[0]
+                    pose_y = pose_base[1] + t_front_camera[1]
+                    pose_z = z_front
+                    orientation = multiply_quaternions(q_odom_base, q0_front)
+                    orientation = multiply_quaternions(orientation, q1_front)
+
+
+
                 #self.pose_x_values.append(pose_x)
                 #self.pose_y_values.append(pose_y)
+                # Vector de traslación T
+                T = np.array([pose_x, pose_y, pose_z])
+
+                # Cuaternión q (qxyz)
+                q = orientation
+
+                # Normaliza el cuaternión
+                # q /= np.linalg.norm(q)
+
+                # # Matriz de rotación a partir del cuaternión
+                # R = np.array([
+                #     [1 - 2*q[2]**2 - 2*q[3]**2, 2*q[1]*q[2] - 2*q[0]*q[3], 2*q[1]*q[3] + 2*q[0]*q[2]],
+                #     [2*q[1]*q[2] + 2*q[0]*q[3], 1 - 2*q[1]**2 - 2*q[3]**2, 2*q[2]*q[3] - 2*q[0]*q[1]],
+                #     [2*q[1]*q[3] - 2*q[0]*q[2], 2*q[2]*q[3] + 2*q[0]*q[1], 1 - 2*q[1]**2 - 2*q[2]**2]
+                # ])
+
+
+                qw, qx, qy, qz = q
+
+                # Calcula los elementos de la matriz de rotación
+                R = np.array([
+                    [1 - 2*qy**2 - 2*qz**2, 2*qx*qy - 2*qz*qw, 2*qx*qz + 2*qy*qw],
+                    [2*qx*qy + 2*qz*qw, 1 - 2*qx**2 - 2*qz**2, 2*qy*qz - 2*qx*qw],
+                    [2*qx*qz - 2*qy*qw, 2*qy*qz + 2*qx*qw, 1 - 2*qx**2 - 2*qy**2]
+                ])
+
+                # Transpone la matriz de rotación
+                R_transpose = R.T
+
+                # Invierte la matriz de rotación transpuesta
+                R_inverse = np.linalg.inv(R_transpose)
+
+                # Calcula R^T * T
+                pose_colmap = np.dot(-R_transpose, T)
+
+                # Convierte la matriz de rotación inversa en un cuaternión
+                q_inverse = rotation_matrix_to_quaternion(R_transpose)
 
                 
 
@@ -436,10 +598,15 @@ class RosBagSerializer(object):
                 # pose_y = pose[1]
                 # pose_x = x_base_link
                 # pose_y = y_base_link
-                pose_z = 0
+                #pose_z = 0
                 print(pose_x)
                 print(pose_y)
                 print(pose_z)
+                print(orientation)
+                #print("Press Enter to continue...")
+
+                # Wait for the user to press Enter
+                #input()
 
                 #enmascarar coordenadas cartesianas como GPS para poder guardar en exif
                 deg_x = int(pose_x)
@@ -461,9 +628,15 @@ class RosBagSerializer(object):
                 # aunque realmente provienen de coordenadas cartesinas con "map" como referencia
                 # Ejm: LAT=78.753 (metros desde el 0,0 del map del rosbag), LON=103.704, ALT=1500.000
                 tf_file_path = os.path.join(self.imu_gps_output_dir, "tf_data.txt")
-                with open(tf_file_path, "a") as tf_file:
-                    tf_info = f"{image_filename} {pose_x} {pose_y} {pose_z}\n"
-                    tf_file.write(tf_info)
+                if self.prev_image_filename != image_filename:
+                    with open(tf_file_path, "a") as tf_file:
+                        #orientation_str = ' '.join(map(str, orientation))
+                        orientation_str = ' '.join(map(str, q_inverse))
+                        #tf_info = f"{self.id} {orientation_str} {pose_x} {pose_y} {pose_z} {1} {folder_name}/{image_filename}\n\n"
+                        tf_info = f"{self.id} {orientation_str} {pose_colmap[0]} {pose_colmap[1]} {pose_colmap[2]} {1} {folder_name}/{image_filename}\n\n"
+                        tf_file.write(tf_info)
+                    self.prev_image_filename = image_filename
+                    self.id += 1
                     #gps_file.write(f"{image_filename}, GPS Data: {gps_data}\n")
                 # Save updated EXIF data back to the image
                 exif_bytes = piexif.dump(exif_dict)
@@ -475,6 +648,7 @@ class RosBagSerializer(object):
 
         # plt.show()
         # plt.ioff()
+        
 
     def parse_msg(self, msg: tp.Any, topic: str) -> tp.Dict[str, tp.Any]:
         """
@@ -799,50 +973,50 @@ class RosBagSerializer(object):
                         self.i += 1
 
 
-        # Guardar ID de impagenes sincronizado con GPS en archivo de texto
-        self.is_gps = True
-        for image_raw_topic in [topic for topic in self.original_topics if '/image_raw' in topic]:
-            # Actualizar self.topics para sincronizar solo un /image_raw con /odom y /base_link
-            self.topics = [image_raw_topic, '/fix']
+        # # Guardar ID de impagenes sincronizado con GPS en archivo de texto
+        # self.is_gps = True
+        # for image_raw_topic in [topic for topic in self.original_topics if '/image_raw' in topic]:
+        #     # Actualizar self.topics para sincronizar solo un /image_raw con /odom y /base_link
+        #     self.topics = [image_raw_topic, '/fix']
             
-            # Actualizar self.filters_dict para incluir los nuevos temas
-            #self.filters_dict.update({topic: message_filters.SimpleFilter() for topic in self.topics})
-            self.filters_dict = {topic: message_filters.SimpleFilter() for topic in self.topics}
-            # Eliminar los filtros obsoletos de self.filters_dict
-            for topic in list(self.filters_dict.keys()):
-                if topic not in self.topics:
-                    del self.filters_dict[topic]
-            self.ts = message_filters.ApproximateTimeSynchronizer(list(self.filters_dict.values()), self.queue_size, self.time_delta)
-            self.ts.registerCallback(self.sync_callback)
-            self.rosbag.seek(0)  # Reiniciar la lectura al principio
-            self.i = 0
+        #     # Actualizar self.filters_dict para incluir los nuevos temas
+        #     #self.filters_dict.update({topic: message_filters.SimpleFilter() for topic in self.topics})
+        #     self.filters_dict = {topic: message_filters.SimpleFilter() for topic in self.topics}
+        #     # Eliminar los filtros obsoletos de self.filters_dict
+        #     for topic in list(self.filters_dict.keys()):
+        #         if topic not in self.topics:
+        #             del self.filters_dict[topic]
+        #     self.ts = message_filters.ApproximateTimeSynchronizer(list(self.filters_dict.values()), self.queue_size, self.time_delta)
+        #     self.ts.registerCallback(self.sync_callback)
+        #     self.rosbag.seek(0)  # Reiniciar la lectura al principio
+        #     self.i = 0
 
-            print("Sync images with GPS")
+        #     print("Sync images with GPS")
 
-            while self.rosbag.has_next():
-                (topic, data, t) = self.rosbag.read_next()
+        #     while self.rosbag.has_next():
+        #         (topic, data, t) = self.rosbag.read_next()
                 
-                skip_iteration = False
+        #         skip_iteration = False
 
-                #this is to avoid reading customized messages that can show errors
-                if topic not in self.topics:
-                    if topic != "/tf":
-                        continue
+        #         #this is to avoid reading customized messages that can show errors
+        #         if topic not in self.topics:
+        #             if topic != "/tf":
+        #                 continue
 
-                print(topic)
-                msg_type = get_message(self.topic_types_map[topic])
-                msg = deserialize_message(data, msg_type)
+        #         print(topic)
+        #         msg_type = get_message(self.topic_types_map[topic])
+        #         msg = deserialize_message(data, msg_type)
 
-                if topic in self.filters_dict:
-                    print("in filters_dict input")
-                    print(topic)
-                    print("in filters_dict output")
-                    filter_obj = self.filters_dict[topic]
-                    filter_obj.signalMessage(msg)
-                    #if topic == "/camera/color/image_raw":
-                    if topic.endswith("/image_raw"):
-                        self.i += 1
-        self.is_gps = False
+        #         if topic in self.filters_dict:
+        #             print("in filters_dict input")
+        #             print(topic)
+        #             print("in filters_dict output")
+        #             filter_obj = self.filters_dict[topic]
+        #             filter_obj.signalMessage(msg)
+        #             #if topic == "/camera/color/image_raw":
+        #             if topic.endswith("/image_raw"):
+        #                 self.i += 1
+        # self.is_gps = False
 
 
             # DEBUG
@@ -874,12 +1048,116 @@ class RosBagSerializer(object):
         # # # Mostrar la imagen
         # plt.show()
 
+def create_masks():
+    # Load a pretrained YOLOv8n model
+    model = YOLO('yolov8x-seg.pt')
+
+    # Directorio base de entrada y salida
+    input_base_folder = '/working/colmap_ws/images'
+    output_base_folder = '/working/colmap_ws/masks'
+
+    # Iterar sobre las carpetas dentro del directorio base de entrada
+    for folder_name in os.listdir(input_base_folder):
+        # Obtener la ruta completa de la carpeta de entrada y salida para esta iteración
+        input_folder = os.path.join(input_base_folder, folder_name)
+        output_folder = os.path.join(output_base_folder, folder_name)
+
+        # Crear la carpeta de salida si no existe
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+
+        # Obtener la lista de archivos en el directorio de entrada y ordenarlos alfabéticamente
+        files = os.listdir(input_folder)
+        files.sort()
+
+        # Iterar sobre todas las imágenes en el directorio de entrada
+        for filename in files:
+            if filename.endswith('.jpg'):
+                # Cargar la imagen original
+                image_path = os.path.join(input_folder, filename)
+                image = cv2.imread(image_path)
+
+                # Ejecutar la segmentación en la imagen original
+                results = model.predict(image, save=False, imgsz=[736,1280])
+
+                # Inicializar la máscara combinada
+                combined_mask = torch.zeros([736,1280], dtype=torch.uint8).to('cuda')
+
+                # Iterar sobre los resultados
+                for result in results:
+                    # Verificar si se detectaron máscaras en el resultado
+                    if result.masks is not None:
+                        # Extraer las máscaras y las cajas de detección
+                        masks = result.masks.data.to('cuda')
+                        boxes = result.boxes.data.to('cuda')
+
+                        # Resto del código para procesar las máscaras
+                    else:
+                        print("No se detectaron máscaras en la imagen.")
+                        continue
+
+                    # Extraer las clases
+                    clss = boxes[:, 5]
+
+                    # Obtener índices de las clases de interés (personas, carros, camiones y motocicletas)
+                    indices_personas = torch.where(clss == 0)[0]
+                    indices_carros = torch.where(clss == 2)[0]
+                    indices_camiones = torch.where(clss == 7)[0]
+                    indices_motocicletas = torch.where(clss == 3)[0]
+
+                    # Combinar las máscaras de las clases de interés en una sola máscara para cada clase
+                    people_mask = torch.any(masks[indices_personas], dim=0).int() * 255
+                    car_mask = torch.any(masks[indices_carros], dim=0).int() * 255
+                    truck_mask = torch.any(masks[indices_camiones], dim=0).int() * 255
+                    motorcycle_mask = torch.any(masks[indices_motocicletas], dim=0).int() * 255
+
+                    # Sumar las máscaras combinadas a la máscara combinada general
+                    combined_mask += people_mask + car_mask + truck_mask + motorcycle_mask
+
+                # Escalar la máscara combinada para que coincida con las dimensiones de la imagen original
+                combined_resized_mask = cv2.resize(combined_mask.cpu().numpy(), (image.shape[1], image.shape[0]))
+
+                # Invertir los colores de la máscara combinada
+                combined_inverted_mask = cv2.bitwise_not(combined_resized_mask)
+
+                # Guardar la máscara combinada invertida con el mismo nombre que la imagen original
+                output_path = os.path.join(output_folder, filename.replace('jpg', 'jpg.png'))
+                cv2.imwrite(output_path, combined_inverted_mask)
+
+def create_image_lists(overlap=10):
+    input_folder= "/working/colmap_ws/images"
+    output_base_folder= "/working/colmap_ws/lists_folder"
+    for folder_name in os.listdir(input_folder):
+        image_folder = os.path.join(input_folder, folder_name)
+        output_folder = os.path.join(output_base_folder, folder_name)
+        
+        image_files = [f for f in os.listdir(image_folder) if f.endswith('.jpg')]
+        image_files.sort()
+
+        num_images = len(image_files)
+        num_lists = num_images // (100 - overlap)
+
+        os.makedirs(output_folder, exist_ok=True)
+
+        for i in range(num_lists):
+            start_index = i * (100 - overlap)
+            if i == (num_lists - 1):
+                end_index = num_images
+            else:
+                end_index = min((i + 1) * (100 - overlap) + overlap, num_images)
+            list_name = os.path.join(output_folder, f"list{i}.txt")
+
+            with open(list_name, 'w') as f:
+                for image_file in image_files[start_index:end_index]:
+                    f.write(os.path.join(folder_name, image_file) + '\n')
+
+            print(f"Created {list_name} with {end_index - start_index} images.")
 
 def main(
     sync_topics: tp.List[str] = [
         # include the image_raw and the camera_info of the cameras you want to synchronize
         # include /fix if you want GPS data
-        "/camera/color/image_raw",
+        #"/camera/color/image_raw",
         #"/camera/color/camera_info",
         #"/video_mapping/left/image_raw",
         #"/video_mapping/left/camera_info",
@@ -907,7 +1185,7 @@ def main(
     @imshow: if True, shows the images
     """
 
-    bag_path = os.path.abspath(os.path.expanduser("/workspaces/SfM/colmap_ws/rosbag_office/rosbag/sfm_0.mcap"))
+    bag_path = os.path.abspath(os.path.expanduser("/working/main_folder/sfm_0.mcap"))
     
     if debug:
         import debugpy  # pylint: disable=import-error
@@ -925,6 +1203,8 @@ def main(
         imshow=imshow,
     )
     rosbag_serializer.process_rosbag()
+    #create_masks()
+    #create_image_lists()
 
 
 if __name__ == "__main__":

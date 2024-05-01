@@ -5,9 +5,13 @@
 *.gif
 *.bmp
 
-# Ignorar archivos .mcap
+# Ignorar rosbags y pointclouds
 *.mcap
+*.laz
+*.yaml
 
+# Ignorar comprimidos
+*.zip
 # Ignorar archivos .ply
 *.ply
 
