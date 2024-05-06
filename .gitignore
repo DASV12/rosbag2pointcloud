@@ -8,7 +8,6 @@
 # Ignorar rosbags y pointclouds
 *.mcap
 *.laz
-*.yaml
 
 # Ignorar comprimidos
 *.zip

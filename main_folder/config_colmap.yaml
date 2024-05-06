@@ -1,0 +1,10 @@
+para colmap pedir listas para reconstruir (pueden ser multiples)
+si es completo, si se va a hacer merge, si es con known poses
+tipo de matcher
+si tiene masks
+cuantos ciclos de refinement si fue known pose
+que tipo de matcher
+si se construye db con extraccion de 1 sola camara o varias ( influye en la elección de matcher y mapper)
+si la ubicacion es gps o tf
+#la mayoría de configuraciones corren por defecto, Colmap tiene cientos de configuraciones en sus etapas,
+# leer un archivo init con todas las confiduraciones de Colmap
