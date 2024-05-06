@@ -108,7 +108,8 @@ class RosBagSerializer(object):
         self.imu_gps_output_dir = os.path.expanduser(self.output_dir)
         os.makedirs(self.imu_gps_output_dir, exist_ok=True)
 
-        self.output_dir = os.path.join(os.path.expanduser(self.output_dir), 'images')
+        # self.output_dir = os.path.join(os.path.expanduser(self.output_dir), 'images')
+        self.output_dir = os.path.join(os.path.join(os.path.expanduser(self.output_dir), 'dataset_ws'), 'images')
         os.makedirs(self.output_dir, exist_ok=True)
 
 
@@ -870,13 +871,13 @@ def main(
         #"/camera/color/camera_info",
         #"/video_mapping/left/image_raw",
         #"/video_mapping/left/camera_info",
-        "/video_mapping/right/image_raw",
+        #"/video_mapping/right/image_raw",
         #"/video_mapping/right/camera_info",
         #"/video_mapping/rear/image_raw",
         #"/video_mapping/rear/camera_info",
         #"/imu/data",
         #"/fix",
-        "/tf"
+        #"/tf"
     ],
     fps: int = 10,
     undistort: bool = True,
@@ -901,14 +902,36 @@ def main(
     # Acceder a las rutas de los archivos
     bag_path = configuracion["bag_path"]
     output = configuracion["output_dir"]
+    # topics_cameras = configuracion["topics_cameras"]
+    print(sync_topics)
+    sync_topics = []
+    cameras_config = configuracion.get("Cameras", {})  # Obtener la configuración de las cámaras
+    for camera_name, camera_info in cameras_config.items():
+        image_topic = camera_info.get("image_topic")
+        if image_topic:
+            sync_topics.append(image_topic)
+    sync_pose = configuracion.get("sync_pose")
+    switch_sync_pose = {
+        "tf": "/tf",
+        "GPS": "/fix",
+    }
+
+    # Obtener el topic correspondiente para el valor de sync_pose
+    topic = switch_sync_pose.get(sync_pose)
+    print(topic)
+    input("Escribe")
+
+    # Verificar si el topic existe y agregarlo a sync_topics si es necesario
+    if topic:
+        sync_topics.append(topic)
+    print(sync_topics)
+    input("Escribe1")
+
+
+
+    print(sync_topics)
+    # instrinsics_from_rosbag = configuracion["instrinsics_from_rosbag"]
     os.makedirs(output, exist_ok=True)
-
-    if debug:
-        import debugpy  # pylint: disable=import-error
-
-        print("Waiting for debugger...")
-        debugpy.listen(5678)
-        debugpy.wait_for_client()
 
     rosbag_serializer = RosBagSerializer(
         bag_path,
@@ -923,6 +946,12 @@ def main(
     #create_masks()
     #create_image_lists()
 
+    if debug:
+        import debugpy  # pylint: disable=import-error
+
+        print("Waiting for debugger...")
+        debugpy.listen(5678)
+        debugpy.wait_for_client()
 
 if __name__ == "__main__":
     typer.run(main)
