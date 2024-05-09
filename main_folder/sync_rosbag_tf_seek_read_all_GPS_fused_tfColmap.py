@@ -62,6 +62,7 @@ def get_rosbag_options(path: str, serialization_format="cdr"):
 class RosBagSerializer(object):
     def __init__(
         self,
+        yaml_path: str,
         rosbag_path: str,
         output_dir: str,
         topics: tp.List[str],
@@ -86,6 +87,7 @@ class RosBagSerializer(object):
         @param verbose (bool, optional) print information while serializing. Defaults to True.
         """
 
+        self.yaml_path = yaml_path
         self.rosbag_path = rosbag_path
         self.output_dir = output_dir
         self.topics = topics
@@ -376,7 +378,7 @@ class RosBagSerializer(object):
                     exif_dict["GPS"][piexif.GPSIFD.GPSLongitudeRef] = 'E' if longitude >= 0 else 'W'
                     exif_dict["GPS"][piexif.GPSIFD.GPSLongitude] = ((lon_deg, 1), (lon_min, 1), (lon_sec, 1000))
                     exif_dict["GPS"][piexif.GPSIFD.GPSAltitude] = (int(altitude*1000), 1000)  # Altitud en metros
-                    print(exif_dict)
+                    #print(exif_dict)
 
             #print(exif_dict)
             if gps_data:
@@ -672,6 +674,11 @@ class RosBagSerializer(object):
         message and sending them to the approximate synchronizer that
         will trigger the synchronization of the messages function.
         """
+        configuracion = cargar_configuracion(self.yaml_path)
+        cameras_config = configuracion.get("Cameras", {})
+
+        # en esta primera etapa se extraen intrinsics de camera/info y statics de frames de /tf
+        # o se extraen del yamal
 
         camera_info_topics = [topic for topic in self.topics if "image_raw" in topic]
         camera_info_topics = [topic.replace("image_raw", "camera_info") for topic in camera_info_topics]
@@ -700,9 +707,41 @@ class RosBagSerializer(object):
 
         # acá crear un ciclo for que reinicie el seek para cada topic de camara requerido y que modifique el diccionario
         # de topics filtrados. Adentro del for va el while
-        for image_raw_topic in [topic for topic in self.topics if '/image_raw' in topic]:
-            # Actualizar self.topics para sincronizar solo un /image_raw con /odom y /base_link
-            self.topics = [image_raw_topic, '/tf/odom', '/tf/base_link']
+        ##
+        # intrinsics y statics se organiza arriba, no acá
+        # correr el ciclo for sobre los valores de la clave "Cameras" y para cada camara extraer las configuraciones de topicos a
+        # sincronizar: image_topic, sync_pose, include_inertial_link
+        
+        ##
+        for camera_name, camera_info in cameras_config.items():
+            image_raw_topic = camera_info.get("image_topic")
+            sync_pose = camera_info.get("sync_pose")
+            include_inertial_link = camera_info.get("include_inertial_link")
+            self.topics = []
+            if image_raw_topic:
+                self.topics.append(image_raw_topic)
+                print("\n\nSynchronizing topic= ", image_raw_topic)
+            if sync_pose == "GPS":
+                self.topics.append("/fix")
+                print("Synchronizing pose = GPS")
+            elif sync_pose == "tf":
+                # Agregar los topics correspondientes a tf si sync_pose es "tf"
+                self.topics.extend(['/tf/odom', '/tf/base_link'])
+                print("Synchronizing pose = tf")
+                if include_inertial_link:
+                    self.topics.append("/tf/inertial_link")
+                    print("Including Intertial Link")
+            else:
+                print("Synchronizing pose = None")
+        ##
+        # for image_raw_topic in [topic for topic in self.topics if '/image_raw' in topic]:
+        #     # Actualizar self.topics para sincronizar solo un /image_raw con /odom y /base_link
+        #     # print("\nSynchronizing topic =", image_raw_topic, "with pose= ", pose, "\n")
+        #     self.topics = [image_raw_topic, '/tf/odom', '/tf/base_link']
+        ##
+
+            # print("\n", self.topics, "\n")
+            print(self.topics, "\n")
             
             # Actualizar self.filters_dict para incluir los nuevos temas
             #self.filters_dict.update({topic: message_filters.SimpleFilter() for topic in self.topics})
@@ -727,7 +766,7 @@ class RosBagSerializer(object):
                 msg = deserialize_message(data, msg_type)
                 
                 # crear condicional para cambiar el nombre del topic /tf según el child_frame_id a /tf/odom y
-                # /tf/base_linkpara sincronizar los mensajes de odom y base_link de tf como topics separados
+                # /tf/base_link para sincronizar los mensajes de odom y base_link de tf como topics separados
                 #print("inicio test")
                 #print(msg_type)
                 if isinstance(msg, tf2_msgs.msg.TFMessage):
@@ -739,6 +778,9 @@ class RosBagSerializer(object):
                             # se convierte de tf2_msgs.msg.TFMessage a geometry_msgs.msg.TransformStamped
                         elif transform.child_frame_id in ('base_link'):
                             topic = topic.replace("tf", "tf/base_link")
+                            msg = transform
+                        elif transform.child_frame_id in ('inertial_link'):
+                            topic = topic.replace("tf", "tf/inertial_link")
                             msg = transform
                         else:
                             skip_iteration = True
@@ -903,37 +945,33 @@ def main(
     bag_path = configuracion["bag_path"]
     output = configuracion["output_dir"]
     # topics_cameras = configuracion["topics_cameras"]
-    print(sync_topics)
     sync_topics = []
     cameras_config = configuracion.get("Cameras", {})  # Obtener la configuración de las cámaras
     for camera_name, camera_info in cameras_config.items():
         image_topic = camera_info.get("image_topic")
         if image_topic:
             sync_topics.append(image_topic)
-    sync_pose = configuracion.get("sync_pose")
-    switch_sync_pose = {
-        "tf": "/tf",
-        "GPS": "/fix",
-    }
-
-    # Obtener el topic correspondiente para el valor de sync_pose
-    topic = switch_sync_pose.get(sync_pose)
-    print(topic)
-    input("Escribe")
-
-    # Verificar si el topic existe y agregarlo a sync_topics si es necesario
-    if topic:
-        sync_topics.append(topic)
-    print(sync_topics)
-    input("Escribe1")
+    print("\nCamera topics to synchronize = ", sync_topics,"\n")
 
 
+    # sync_pose = configuracion.get("sync_pose")
+    # switch_sync_pose = {
+    #     "tf": "/tf",
+    #     "GPS": "/fix",
+    # }
+    # # Obtener el topic correspondiente para el valor de sync_pose
+    # topic = switch_sync_pose.get(sync_pose)
+    # # Verificar si el topic existe y agregarlo a sync_topics si es necesario
+    # if topic:
+    #     sync_topics.append(topic)
+    # print("Synchronizing pose= ", sync_pose)
 
-    print(sync_topics)
+
     # instrinsics_from_rosbag = configuracion["instrinsics_from_rosbag"]
     os.makedirs(output, exist_ok=True)
 
     rosbag_serializer = RosBagSerializer(
+        yaml_path,
         bag_path,
         output,
         sync_topics,
