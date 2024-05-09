@@ -189,6 +189,7 @@ class RosBagSerializer(object):
         self.i = 0  # Inicializar el contador
         self.id = 1
         self.prev_image_filename = None
+        self.read_cameras = []
 
 
     def sync_callback(self, *msgs):
@@ -242,7 +243,7 @@ class RosBagSerializer(object):
 
         
 
-        # Iterate over arguments, each argument is a different msg from de synchronized topics
+        # Iterate over arguments, each argument is a different msg from the synchronized topics
         for topic, msg in zip(self.topics, msgs):
             # Parse msg depending on its type
             msg_info_dict = self.parse_msg(msg, topic)
@@ -311,8 +312,23 @@ class RosBagSerializer(object):
 
         # Guardar las imágenes en el directorio de salida con intrinsics y GPS
         for topic, img_data in img_data.items():
+            ##
+            # nombre de carpetas
+            # puedo hacer un while recorriendo el configuracion hasta encontrar el topic de la imagen y ahí extraer todos los datos
+            cameras_config = self.configuracion.get("Cameras", {})  # Obtener la configuración de las cámaras
+            topic_match = False
+            while not topic_match:
+                for camera_name, camera_info in cameras_config.items():
+                    image_topic = camera_info.get("image_topic")
+                    if image_topic == topic:
+                        if camera_name in self.read_cameras:
+                            continue
+                        topic_match = True
+                        folder_name = camera_name
+                        break
+            ##
             if "/video_mapping/left/image_raw" in topic:
-                folder_name = "left"
+                #folder_name = "left"
                 #base_link to camera aproximate
                 x_left = 0.12
                 y_left = 0.17
@@ -326,7 +342,7 @@ class RosBagSerializer(object):
                 # corrected extrinsics -0.7071068, 0, 0, 0.7071068 x: -90, y:0, z:0
                 q_left = np.array([rw_left, rx_left, ry_left, rz_left])
             elif "/video_mapping/right/image_raw" in topic:
-                folder_name = "right"
+                #folder_name = "right"
                 x_right = 0.12
                 y_right = -0.17
                 z_right = 0.42
@@ -338,7 +354,7 @@ class RosBagSerializer(object):
                 # corrected extrinsics 0, 0.7071068, -0.7071068, 0 x: 90, y:0, z:-180
                 q_right = np.array([rw_right, rx_right, ry_right, rz_right])
             elif "/camera/color/image_raw" in topic:
-                folder_name = "front"
+                #folder_name = "front"
                 x_front = 0.21
                 y_front = -0.041
                 z_front = 0.443
@@ -819,6 +835,9 @@ class RosBagSerializer(object):
                     #if topic == "/camera/color/image_raw":
                     if topic.endswith("/image_raw"):
                         self.i += 1
+            #
+            self.read_cameras.append(camera_name)
+
 
 def create_masks():
     # Load a pretrained YOLOv8n model
