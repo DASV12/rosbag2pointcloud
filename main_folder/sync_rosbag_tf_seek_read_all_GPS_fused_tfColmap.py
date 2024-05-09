@@ -62,6 +62,7 @@ def get_rosbag_options(path: str, serialization_format="cdr"):
 class RosBagSerializer(object):
     def __init__(
         self,
+        configuracion: dict,
         yaml_path: str,
         rosbag_path: str,
         output_dir: str,
@@ -87,6 +88,7 @@ class RosBagSerializer(object):
         @param verbose (bool, optional) print information while serializing. Defaults to True.
         """
 
+        self.configuracion = configuracion
         self.yaml_path = yaml_path
         self.rosbag_path = rosbag_path
         self.output_dir = output_dir
@@ -200,6 +202,7 @@ class RosBagSerializer(object):
         imu_gps_data = {}
         gps_data = {}
         tf_data = {}
+        inertial = False
 
         def rotation_matrix_to_quaternion(R):
             trace = np.trace(R)
@@ -289,6 +292,22 @@ class RosBagSerializer(object):
                     siny_cosp = 2 * (q[0] * q[3] + q[1] * q[2])
                     cosy_cosp = 1 - 2 * (q[2] ** 2 + q[3] ** 2)
                     rz_e_base_link = np.arctan2(siny_cosp, cosy_cosp)
+                
+                if "/tf/inertial_link" in topic:
+                    x_inertial_link = tf_data["translation"]["x"]
+                    y_inertial_link = tf_data["translation"]["y"]
+                    z_inertial_link = tf_data["translation"]["z"]
+                    rx_inertial_link = tf_data["rotation"]["x"]
+                    ry_inertial_link = tf_data["rotation"]["y"]
+                    rz_inertial_link = tf_data["rotation"]["z"]
+                    w_inertial_link = tf_data["rotation"]["w"]
+                    # Convertir el cuaternión a ángulos de Euler (en radianes)
+                    q = np.array([w_inertial_link, rx_inertial_link, ry_inertial_link, rz_inertial_link])
+                    q_inertial = q
+                    siny_cosp = 2 * (q[0] * q[3] + q[1] * q[2])
+                    cosy_cosp = 1 - 2 * (q[2] ** 2 + q[3] ** 2)
+                    rz_e_inertial_link = np.arctan2(siny_cosp, cosy_cosp)
+                    inertial = True
 
         # Guardar las imágenes en el directorio de salida con intrinsics y GPS
         for topic, img_data in img_data.items():
@@ -405,6 +424,11 @@ class RosBagSerializer(object):
                 Rz_base_link = np.array([[np.cos(rz_e_base_link), -np.sin(rz_e_base_link)],
                                     [np.sin(rz_e_base_link), np.cos(rz_e_base_link)]])
                 q_odom_base = multiply_quaternions(q_odom, q_base)
+                #inertial
+                if inertial:
+                    q_odom_base = multiply_quaternions(q_odom_base, q_inertial)
+
+                #inertial
 
                 #rot base y camaras
                 if "/video_mapping/left/image_raw" in topic:
@@ -676,6 +700,7 @@ class RosBagSerializer(object):
         """
         configuracion = cargar_configuracion(self.yaml_path)
         cameras_config = configuracion.get("Cameras", {})
+        # cameras_config = self.cameras_config
 
         # en esta primera etapa se extraen intrinsics de camera/info y statics de frames de /tf
         # o se extraen del yamal
@@ -971,6 +996,7 @@ def main(
     os.makedirs(output, exist_ok=True)
 
     rosbag_serializer = RosBagSerializer(
+        configuracion,
         yaml_path,
         bag_path,
         output,
