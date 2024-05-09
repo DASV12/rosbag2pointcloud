@@ -3,7 +3,7 @@ output_dir: "/workspaces/SfM2"
 generate_masks: true # filters people, cars, trucks and motorcycles
 delta_sync: 0.1 # default 0.1s
 Cameras:
-  righte: #this is also the name of the folder containing the images of the topic
+  right: # Unique Name. This is also the name of the folder containing the images of the topic
     image_topic: /video_mapping/right/image_raw
     get_intrinsics_from_topic: false
     cam_info_topic: /video_mapping/right/camera_info # intrinsics
@@ -23,8 +23,14 @@ Cameras:
     include_inertial_link: true # drop % of images
     get_static_transform_from_tf: false # ros2 run tf2_ros tf2_echo inertial_link camera_color_optical_frame
     transform: [[w, qx, qy, qz, x, y, z], [w, qx, qy, qz, x, y, z]] # complete or multimple static transforms from robot base_link/inertial_link to camera
-  # stereo:
-  #   image_topic: /camera/color/image_raw
+  front:
+    image_topic: /camera/color/image_raw
+    cam_info_topic: /camera/color/camera_info # intrinsics
+    get_intrinsics_from_topic: true
+  left:
+    image_topic: /video_mapping/left/image_raw
+    cam_info_topic: /video_mapping/right/camera_info # intrinsics
+    get_intrinsics_from_topic: true
   #   cam_info_topic: /camera/color/camera_info # intrinsics
   #   frame_id: "camera_color_optical_frame" 
   #   get_transform_from_tf: true
