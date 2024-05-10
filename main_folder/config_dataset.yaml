@@ -1,25 +1,25 @@
 bag_path: "/workspaces/SfM2/colmap_ws/rosbag_office/rosbag/sfm_0.mcap"
 output_dir: "/workspaces/SfM2"
 generate_masks: true # filters people, cars, trucks and motorcycles
-delta_sync: 0.1 # default 0.1s
 Cameras:
   right: # Unique Name. This is also the name of the folder containing the images of the topic
     image_topic: /video_mapping/right/image_raw
-    get_intrinsics_from_topic: false
+    get_intrinsics_from_topic: true
     cam_info_topic: /video_mapping/right/camera_info # intrinsics
     intrinsics: # if intrinsics not from topic
       frame_id: "right"
-      height: 720
-      width: 1280
+      height: 720 #360
+      width: 1280 #640
       distortion_model: "plumb_bob"
       d: [-0.340658, 0.081919, 3.0e-06, 0.002878, 0.0]
-      k: [382.927414, 0.0, 326.270488, 0.0, 383.210948, 174.61705, 0.0, 0.0, 1.0]
+      #k: [382.927414, 0.0, 326.270488, 0.0, 383.210948, 174.61705, 0.0, 0.0, 1.0]
+      k: [765.854828, 0.0, 652.540976, 0.0, 766.421896, 349.2341, 0.0, 0.0, 1.0] # [fx, 0 , cx, 0 , fy, cy, 0, 0, 1]
       r: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
       p: [256.520905, 0.0, 338.412784, 0.0, 0.0, 349.866089, 173.027438, 0.0, 0.0, 0.0, 1.0, 0.0]
     # extrinsics if sync pose with /tf
     sync_pose: tf # (tf, GPS, None) default None
-    delta_sampler_time: # default 0.0s
-    delta_sampler_distance: # default 0.0m
+    # delta_sampler_time: # default 0.0s # trabajo futuro
+    # delta_sampler_distance: # default 0.0m # trabajo futuro
     include_inertial_link: true # drop % of images
     get_static_transform_from_tf: false # ros2 run tf2_ros tf2_echo inertial_link camera_color_optical_frame
     transform: [[w, qx, qy, qz, x, y, z], [w, qx, qy, qz, x, y, z]] # complete or multimple static transforms from robot base_link/inertial_link to camera
@@ -27,19 +27,24 @@ Cameras:
     image_topic: /camera/color/image_raw
     cam_info_topic: /camera/color/camera_info # intrinsics
     get_intrinsics_from_topic: true
-  left:
-    image_topic: /video_mapping/left/image_raw
-    cam_info_topic: /video_mapping/right/camera_info # intrinsics
-    get_intrinsics_from_topic: true
-  #   cam_info_topic: /camera/color/camera_info # intrinsics
-  #   frame_id: "camera_color_optical_frame" 
-  #   get_transform_from_tf: true
-  #   transform: [x,y,z,r,p,y]
-  # tfix:
-  #   image_topic: /camera/color/fix
-#outpt dataset_ws
-#delta de tiempo para sincronizar
-# para sincronizacion pedir tf, pgs or none
-# para sincronizacion pedir filtrar todos por tiempo, si es tf agrega condición de filtrar por distancia euclideana
-# si se equivoca de topic que le muestre todos los topics disponibles
-# si no hay rosbag decir que no hay
+  # left: # Unique Name. This is also the name of the folder containing the images of the topic
+  #   image_topic: /video_mapping/left/image_raw
+  #   get_intrinsics_from_topic: false
+  #   cam_info_topic: /video_mapping/left/camera_info # intrinsics
+  #   intrinsics: # if intrinsics not from topic
+  #     frame_id: "left"
+  #     height: 360
+  #     width: 640
+  #     distortion_model: "plumb_bob"
+  #     d: [-0.340658, 0.081919, 3.0e-06, 0.002878, 0.0]
+  #     k: [382.927414, 0.0, 326.270488, 0.0, 383.210948, 174.61705, 0.0, 0.0, 1.0] # [fx, 0 , cx, 0 , fy, cy, 0, 0, 1]
+  #     #k: [765.854828, 0.0, 652.540976, 0.0, 766.421896, 349.2341, 0.0, 0.0, 1.0]
+  #     r: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+  #     p: [256.520905, 0.0, 338.412784, 0.0, 0.0, 349.866089, 173.027438, 0.0, 0.0, 0.0, 1.0, 0.0]
+  #   # extrinsics if sync pose with /tf
+  #   sync_pose: tf # (tf, GPS, None) default None
+  #   # delta_sampler_time: # default 0.0s # trabajo futuro
+  #   # delta_sampler_distance: # default 0.0m # trabajo futuro
+  #   include_inertial_link: true # drop % of images
+  #   get_static_transform_from_tf: false # ros2 run tf2_ros tf2_echo inertial_link camera_color_optical_frame
+  #   transform: [[w, qx, qy, qz, x, y, z], [w, qx, qy, qz, x, y, z]] # complete or multimple static transforms from robot base_link/inertial_link to camera

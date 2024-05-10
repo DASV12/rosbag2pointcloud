@@ -190,6 +190,8 @@ class RosBagSerializer(object):
         self.id = 1
         self.prev_image_filename = None
         self.read_cameras = []
+        self.flag_camera = None
+
 
 
     def sync_callback(self, *msgs):
@@ -383,10 +385,10 @@ class RosBagSerializer(object):
                 cv2.imwrite(image_path, img_data)
                 exif_dict = piexif.load(image_path)
             # Agregar información sobre la distancia focal y los puntos centrales
-            fx = self.cams_params[topic]["k"][0, 0]
-            fy = self.cams_params[topic]["k"][1, 1]
-            cx = self.cams_params[topic]["k"][0, 2]
-            cy = self.cams_params[topic]["k"][1, 2]
+            fx = self.cams_params[self.flag_camera]["k"][0, 0]
+            fy = self.cams_params[self.flag_camera]["k"][1, 1]
+            cx = self.cams_params[self.flag_camera]["k"][0, 2]
+            cy = self.cams_params[self.flag_camera]["k"][1, 2]
             if not self.is_gps:
                 exif_dict["Exif"][piexif.ExifIFD.FocalLength] = (int(fx*1000), 1000)  # Distancia focal en milímetros
             #exif_dict["Exif"][piexif.ExifIFD.PixelXDimension] = int(cx)  # Punto central en el eje x
@@ -544,13 +546,13 @@ class RosBagSerializer(object):
         
     def parse_intrinsics(self, msg: dict) -> tp.Dict[str, tp.Any]:
         params = {}
-
-        params["dim"] = (int(msg.width), int(msg.height))
-        params["k"] = np.array(msg.k).reshape((3, 3))
-        params["p"] = np.array(msg.p).reshape((3, 4))
-        params["distortion_model"] = msg.distortion_model
-        params["d"] = np.array(msg.d)
-        params["r"] = np.array(msg.r).reshape((3, 3))
+        print(msg)
+        params["dim"] = (int(msg['width']), int(msg['height']))
+        params["k"] = np.array(msg['k']).reshape((3, 3))
+        params["p"] = np.array(msg['p']).reshape((3, 4))
+        params["distortion_model"] = msg['distortion_model']
+        params["d"] = np.array(msg['d'])
+        params["r"] = np.array(msg['r']).reshape((3, 3))
 
         if params["distortion_model"] in ("equidistant", "fisheye"):
             initUndistortRectifyMap_fun = cv2.fisheye.initUndistortRectifyMap
@@ -658,11 +660,14 @@ class RosBagSerializer(object):
         # Convert image to cv2 image
         cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
         # only undistort usb camera images, stereo is already undistorted
-        if self.cams_params.get(topic) and self.undistort:
+        #if self.cams_params.get(topic) and self.undistort:
+        if self.cams_params.get(self.flag_camera) and self.undistort:
             cv_image = cv2.remap(
                 cv_image,
-                self.cams_params[topic]["map1"],
-                self.cams_params[topic]["map2"],
+                # self.cams_params[topic]["map1"],
+                # self.cams_params[topic]["map2"],
+                self.cams_params[self.flag_camera]["map1"],
+                self.cams_params[self.flag_camera]["map2"],
                 cv2.INTER_LINEAR,
             )
         return {"data": cv_image}
@@ -673,11 +678,14 @@ class RosBagSerializer(object):
         np_arr = np.array(msg.data, dtype=np.uint8)
         cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         # only undistort usb camera images, stereo is already undistorted
-        if self.cams_params.get(topic) and self.undistort:
+        #if self.cams_params.get(topic) and self.undistort:
+        if self.cams_params.get(self.flag_camera) and self.undistort:
             cv_image = cv2.remap(
                 cv_image,
-                self.cams_params[topic]["map1"],
-                self.cams_params[topic]["map2"],
+                # self.cams_params[topic]["map1"],
+                # self.cams_params[topic]["map2"],
+                self.cams_params[self.flag_camera]["map1"],
+                self.cams_params[self.flag_camera]["map2"],
                 cv2.INTER_LINEAR,
             )
         return {"data": cv_image}
@@ -776,7 +784,7 @@ class RosBagSerializer(object):
             if not get_intrinsics_from_topic:
                 self.cams_params[camera_name] = self.parse_intrinsics(camera_info.get("intrinsics"))
                 found_data_for_cameras[camera_name] = True
-        # si get es true pero cam_info_topic es nulo o incorrecto?= se queda
+        
         while self.rosbag.has_next() and not all(found_data_for_cameras.values()): # found_data_for_cameras
             (topic, data, t) = self.rosbag.read_next()
             if topic not in camera_info_topics:
@@ -792,10 +800,10 @@ class RosBagSerializer(object):
                     if cam_info_topic == topic:
                         self.cams_params[camera_name] = self.parse_camera_info(msg)
                         found_data_for_cameras[camera_name] = True
-        if not all(found_data_for_cameras.values()):
+        if not all(found_data_for_cameras.values()): # si get es true pero cam_info_topic es nulo o incorrecto
             raise ValueError("Error: Not all cameras have found info data.")
-        print(self.cams_params)
-        input("wait")
+        # print(self.cams_params)
+        # input("wait")
 
             # corresponding_camera hacer un for
             # para guardar msg en self.cams_params las veces que sea necesaria con la clave de la camara que tenga a "topic"
@@ -822,13 +830,15 @@ class RosBagSerializer(object):
         
         ##
         for camera_name, camera_info in cameras_config.items():
+            self.flag_camera = camera_name
             image_raw_topic = camera_info.get("image_topic")
             sync_pose = camera_info.get("sync_pose")
             include_inertial_link = camera_info.get("include_inertial_link")
             self.topics = []
+            print("\n\nCamera name: ", camera_name)
             if image_raw_topic:
                 self.topics.append(image_raw_topic)
-                print("\n\nSynchronizing topic= ", image_raw_topic)
+                print("Synchronizing topic= ", image_raw_topic)
             if sync_pose == "GPS":
                 self.topics.append("/fix")
                 print("Synchronizing pose = GPS")
@@ -1053,7 +1063,7 @@ def main(
     yaml_path = "config_dataset.yaml"
     yaml_path = os.path.abspath(os.path.expanduser(yaml_path))
     configuracion = cargar_configuracion(yaml_path)
-    print("YAML= ", configuracion)
+    #print("YAML= ", configuracion)
     # Acceder a las rutas de los archivos
     bag_path = configuracion["bag_path"]
     output = configuracion["output_dir"]
