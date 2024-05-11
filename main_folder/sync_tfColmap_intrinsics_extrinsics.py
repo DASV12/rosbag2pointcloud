@@ -310,7 +310,7 @@ class RosBagSerializer(object):
                     q_inertial = q
                     siny_cosp = 2 * (q[0] * q[3] + q[1] * q[2])
                     cosy_cosp = 1 - 2 * (q[2] ** 2 + q[3] ** 2)
-                    rz_e_inertial_link = np.arctan2(siny_cosp, cosy_cosp)
+                    rz_e_inertial_link = np.arctan2(siny_cosp, cosy_cosp) # inertial link no aporta rotaciones en Z
                     inertial = True
 
         # Guardar las imágenes en el directorio de salida con intrinsics y GPS
@@ -780,29 +780,136 @@ class RosBagSerializer(object):
         }
         return {"data": tf_data}
     
+    def multiply_transforms(self, transform: tp.List[float], msg: tp.List[float]) -> tp.List[float]:
+        # el rosbag usa convencion XYZ para las rotaciones
+        x = transform[4]
+        y = transform[5]
+        z = transform[6]
+        w = transform[0]
+        qx = transform[1]
+        qy = transform[2]
+        qz = transform[3]
+        x_t = msg[4]
+        y_t = msg[5]
+        z_t = msg[6]
+        v_t = np.array([x_t, y_t, z_t])
+        w_msg = msg[0]
+        qx_msg = msg[1]
+        qy_msg = msg[2]
+        qz_msg = msg[3]
+        # Convertir el cuaternión a ángulos de Euler (en radianes)
+        # // roll (x-axis rotation)
+        # double sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+        # double cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+        # angles.roll = std::atan2(sinr_cosp, cosr_cosp);
+
+        # // pitch (y-axis rotation)
+        # double sinp = std::sqrt(1 + 2 * (q.w * q.y - q.x * q.z));
+        # double cosp = std::sqrt(1 - 2 * (q.w * q.y - q.x * q.z));
+        # angles.pitch = 2 * std::atan2(sinp, cosp) - M_PI / 2;
+
+        # // yaw (z-axis rotation)
+        # double siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+        # double cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+        # angles.yaw = std::atan2(siny_cosp, cosy_cosp);
+        q = np.array([w, qx, qy, qz])
+        q_msg = np.array([w_msg, qx_msg, qy_msg, qz_msg])
+        siny_cosp = 2 * (q[0] * q[3] + q[1] * q[2])
+        cosy_cosp = 1 - 2 * (q[2] ** 2 + q[3] ** 2)
+        rz_e = np.arctan2(siny_cosp, cosy_cosp)
+        sinr_cosp = 2 * (q[0] * q[1] + q[2] * q[3])
+        cosr_cosp = 1 - 2 * (q[1] ** 2 + q[2] ** 2)
+        rx_e = np.arctan2(sinr_cosp, cosr_cosp)
+        sin_p = np.sqrt(1 + 2 * (q[0] * q[2] - q[1] * q[3]))
+        cos_p = np.sqrt(1 - 2 * (q[0] * q[2] - q[1] * q[3]))
+        ry_e = 2 * np.arctan2(sin_p, cos_p) - (np.pi/2)
+        # sin_p = 2 * (q[0] * q[2] - q[1] * q[3])
+        # cos_p = 1 - 2 * (q[2] ** 2 + q[3] ** 2)
+        # ry_e = np.arctan2(sin_p, cos_p)
+        pose = np.array([x, y, z])
+        Rz = np.array([[np.cos(rz_e), -np.sin(rz_e), 0],
+                            [np.sin(rz_e), np.cos(rz_e), 0], 
+                            [0, 0, 1]])
+        Rx = np.array([[1, 0, 0],
+                            [0, np.cos(rx_e), np.sin(rx_e)], 
+                            [0, -np.sin(rx_e), np.cos(rx_e)]])
+        Ry = np.array([[np.cos(ry_e), 0, -np.sin(ry_e)],
+                            [0, 1,  0], 
+                            [np.sin(ry_e), 0, np.cos(ry_e)]])
+        rotation_matrix = np.dot(np.dot(Rx, Ry), Rz)
+        # Traslación
+        R = np.dot(rotation_matrix, v_t)
+        pose_x = x + R[0]
+        pose_y = y+ R[1]
+        pose_z = z+ R[2]
+        quaternion = self.multiply_quaternion(q, q_msg)
+        return np.array([quaternion[0], quaternion[1], quaternion[2], quaternion[3], pose_x, pose_y, pose_z])
+
+
+    # def rotation_matrix_to_quaternion(R):
+    #         trace = np.trace(R)
+    #         r = np.sqrt(1 + trace)
+    #         s = 1 / (2 * r)
+            
+    #         qw = r / 2
+    #         qx = s * (R[2, 1] - R[1, 2])
+    #         qy = s * (R[0, 2] - R[2, 0])
+    #         qz = s * (R[1, 0] - R[0, 1])
+
+    #         return np.array([qw, qx, qy, qz])
+
+    def multiply_quaternion(self, q1, q2):
+        """
+        Multiplica dos cuaterniones y devuelve el resultado.
+        
+        Args:
+        - q1 (array): Cuaternión en forma de array [w, x, y, z].
+        - q2 (array): Cuaternión en forma de array [w, x, y, z].
+        
+        Returns:
+        - array: Cuaternión resultante de la multiplicación [w, x, y, z].
+        """
+        # Desempaqueta los componentes de los cuaterniones
+        w1, x1, y1, z1 = q1
+        w2, x2, y2, z2 = q2
+        
+        # Calcula el producto de los cuaterniones
+        w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
+        x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
+        y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
+        z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
+        
+        # Retorna el cuaternión resultante
+        return np.array([w, x, y, z])
+
     def parse_static_tf_info(self, msg: tp.List[float]) -> tp.Dict[str, tp.Any]:
         """Parses static TF transforms."""
         tf_data = {}
         if len(msg) == 1:
+            print("Single transforms")
             transform = msg[0]
-            tf_data = {
-            "translation": {
-                "x": transform[4],
-                "y": transform[5],
-                "z": transform[6],
-            },
-            "rotation": {
-                "x": transform[1],
-                "y": transform[2],
-                "z": transform[3],
-                "w": transform[0],
-            }
-            }
-        # elif len(msg) > 1:
-        #     #multiply
+        elif len(msg) > 1:
+            print("Multiple transforms")
+            transform = msg[0]
+            for i in range(1, len(msg)):
+                transform =  self.multiply_transforms(transform, msg[i])
+        elif len(msg) == 0:
+            raise ValueError("Error: Static transformation not provided.")
         #input("wait")
 
-
+        tf_data = {
+        "translation": {
+            "x": transform[4],
+            "y": transform[5],
+            "z": transform[6],
+        },
+        "rotation": {
+            "x": transform[1],
+            "y": transform[2],
+            "z": transform[3],
+            "w": transform[0],
+        }
+        }
         return {"data": tf_data}
 
     
@@ -898,6 +1005,8 @@ class RosBagSerializer(object):
                 get_static_transform_from_tf = camera_info.get("get_static_transform_from_tf")
                 if not get_static_transform_from_tf:
                     self.static_tf[camera_name] = self.parse_static_tf_info(camera_info.get("transform"))
+                    print(self.static_tf[camera_name])
+                    #input("wait")
                 # else:
                 #     # read rosbag and get frame from tf_static
                 #     w=0
