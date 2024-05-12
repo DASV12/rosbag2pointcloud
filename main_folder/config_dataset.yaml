@@ -1,5 +1,5 @@
-bag_path: "/workspaces/SfM2/colmap_ws/rosbag_office/rosbag/sfm_0.mcap"
-output_dir: "/workspaces/SfM2"
+bag_path: "/working/sfm/sfm_0.mcap"
+output_dir: "/working"
 generate_masks: true # filters people, cars, trucks and motorcycles
 delta_time: 0.1
 Cameras:

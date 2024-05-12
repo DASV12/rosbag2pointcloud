@@ -109,7 +109,7 @@ class RosBagSerializer(object):
         self.is_gps = bool
 
         # self.imu_gps_output_dir = os.path.join(os.path.expanduser('/working'), 'colmap_ws')
-        self.imu_gps_output_dir = os.path.expanduser(self.output_dir)
+        self.imu_gps_output_dir = os.path.expanduser(os.path.join(self.output_dir, "lists"))
         os.makedirs(self.imu_gps_output_dir, exist_ok=True)
 
         # self.output_dir = os.path.join(os.path.expanduser(self.output_dir), 'images')
@@ -1275,7 +1275,7 @@ def main(
     # bag_path = os.path.abspath(os.path.expanduser("/working/main_folder/sfm_0.mcap"))
     # Ask the user to input the YAML path
     #yaml_path = input("Please enter the path to the YAML file: ")
-    yaml_path = "config_dataset.yaml"
+    yaml_path = "main_folder/config_dataset.yaml"
     yaml_path = os.path.abspath(os.path.expanduser(yaml_path))
     configuracion = cargar_configuracion(yaml_path)
     #print("YAML= ", configuracion)
