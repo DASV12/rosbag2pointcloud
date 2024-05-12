@@ -86,7 +86,7 @@ def run_colmap_mapper(image_folder, list_folder, output_folder):
     os.makedirs("colmap_ws", exist_ok=True)
     # Run feature extractor and feature matching
     commands = [
-     "colmap feature_extractor --database_path /working/colmap_ws/dataset.db --image_path /working/colmap_ws/images --ImageReader.mask_path /working/colmap_ws/masks --ImageReader.camera_model SIMPLE_PINHOLE --ImageReader.single_camera_per_folder 1",
+     "colmap feature_extractor --database_path /working/colmap_ws/dataset.db --image_path /working/dataset_ws/images --ImageReader.mask_path /working/dataset_ws/masks --ImageReader.camera_model SIMPLE_PINHOLE --ImageReader.single_camera_per_folder 1",
      "colmap sequential_matcher --database_path /working/colmap_ws/dataset.db"
     ]
     for cmd in commands:
