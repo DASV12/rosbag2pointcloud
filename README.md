@@ -77,6 +77,20 @@ echo \
 sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+Cuda toolkit:
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
+sudo mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
+wget https://developer.download.nvidia.com/compute/cuda/12.4.1/local_installers/cuda-repo-ubuntu2204-12-4-local_12.4.1-550.54.15-1_amd64.deb
+sudo dpkg -i cuda-repo-ubuntu2204-12-4-local_12.4.1-550.54.15-1_amd64.deb
+sudo cp /var/cuda-repo-ubuntu2204-12-4-local/cuda-*-keyring.gpg /usr/share/keyrings/
+sudo apt-get update
+sudo apt-get -y install cuda-toolkit-12-4
+-# Add to .bashrc
+export PATH=/usr/local/cuda-12.4/bin${PATH:+:${PATH}}
+export LD_LIBRARY_PATH=/usr/local/cuda-12.4/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+-# verify: nvcc --version
+
+
 Nvidia-docker toolkit:
 NVIDIA GPU/CUDA and installed drivers.
 curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
@@ -108,16 +122,19 @@ docker run \
     -e DISPLAY=$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -w /working \
-    -v /home/user/Documents/.../SfM_CUDA:/working
+    -v /home/user/Documents/.../SfM_CUDA:/working \
     --gpus all \
     --privileged \
     -it colmap:cuda \
     # colmap gui
 
 GUI Troubleshooting:
+xhost +
 sudo apt-get remove libxcb-xinerama0
 sudo apt-get purge libxcb-xinerama0
 sudo apt-get install libxcb-xinerama0
+sudo apt install qtchooser
+sudo apt install libqt5gui5
 
 ### Dataset generator
 Download your rosbag under /main_folder and from Sfm_CUDA run:

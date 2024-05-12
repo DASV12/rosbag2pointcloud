@@ -109,7 +109,7 @@ class RosBagSerializer(object):
         self.is_gps = bool
 
         # self.imu_gps_output_dir = os.path.join(os.path.expanduser('/working'), 'colmap_ws')
-        self.imu_gps_output_dir = os.path.expanduser(os.path.join(self.output_dir, "lists"))
+        self.imu_gps_output_dir = os.path.expanduser(os.path.join(self.output_dir, "dataset_ws/lists"))
         os.makedirs(self.imu_gps_output_dir, exist_ok=True)
 
         # self.output_dir = os.path.join(os.path.expanduser(self.output_dir), 'images')
@@ -1136,8 +1136,8 @@ def create_masks():
     model = YOLO('yolov8x-seg.pt')
 
     # Directorio base de entrada y salida
-    input_base_folder = '/working/colmap_ws/images'
-    output_base_folder = '/working/colmap_ws/masks'
+    input_base_folder = '/working/dataset_ws/images'
+    output_base_folder = '/working/dataset_ws/masks'
 
     # Iterar sobre las carpetas dentro del directorio base de entrada
     for folder_name in os.listdir(input_base_folder):
@@ -1320,7 +1320,7 @@ def main(
         imshow=imshow,
     )
     rosbag_serializer.process_rosbag()
-    #create_masks()
+    create_masks()
     #create_image_lists()
 
     if debug:
