@@ -62,22 +62,63 @@ A pure colmap/colmap:latest image can´t run Dataset Generation stage
 This project should be run in an nvidia/cuda image as suggested in the COLMAP repository. This option is still being tested due to issues with the version of the GPU used in this project.
 
 ## Run Project
+### Requirements
+Docker:
+sudo apt update
+sudo apt-get install ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+Nvidia-docker toolkit:
+NVIDIA GPU/CUDA and installed drivers.
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+  && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+sudo systemctl restart docker
+
 ### Docker Container
 From SfM_CUDA path run:
+
 docker build -t="colmap:cuda" .
--# In some cases, you may have to explicitly specify the compute architecture:
+
+-# In some cases, you may have to explicitly specify the compute architecture (compute capability):
 -#   docker build -t="colmap:latest" --build-arg CUDA_ARCHITECTURES=86 .
 docker run --gpus all -w /working -v $1:/working -it colmap:cuda
--# Replace with your working directory (path to cloned repository) as this: docker run --gpus all -w /working -v /home/user/Documents/.../SfM_CUDA:/working -it colmap:cuda
+-# Replace with your working directory (path to cloned repository) as this:
+
+docker run \
+    --gpus all \
+    -w /working \
+    -v /home/user/Documents/.../SfM_CUDA:/working \
+    -it colmap:cuda
 
 docker run \
     -e QT_XCB_GL_INTEGRATION=xcb_egl \
-    -e DISPLAY=:0 \
+    -e DISPLAY=$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -w /working \
+    -v /home/user/Documents/.../SfM_CUDA:/working
     --gpus all \
     --privileged \
-    -it colmap/colmap:latest \
-    colmap gui
+    -it colmap:cuda \
+    # colmap gui
+
+GUI Troubleshooting:
+sudo apt-get remove libxcb-xinerama0
+sudo apt-get purge libxcb-xinerama0
+sudo apt-get install libxcb-xinerama0
+
 ### Dataset generator
 Download your rosbag under /main_folder and from Sfm_CUDA run:
 python3 main_folder/sync_rosbag_tf_seek_read_all_GPS_fused.py

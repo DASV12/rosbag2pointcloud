@@ -22,4 +22,6 @@ mask_rcnn_coco.h5
 # Ignorar contenido dentro de la carpeta colmap_ws
 /colmap_ws/*
 /main_folder/old_codes/*
-
+/dataset_ws/*
+/lists/*
+/sfm/*
