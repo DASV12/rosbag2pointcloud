@@ -55,6 +55,10 @@ Antes de ejecutar el comando revisar si en la carpeta sparse se creó la carpeta
 7. colmap patch_match_stereo --workspace_path dense
 
 8. colmap stereo_fusion --workspace_path dense --output_path dense/fused.ply
+
+9. colmap poisson_mesher --input_path dense/fused.ply --output_path dense/meshed-poisson.ply
+
+9. colmap delaunay_mesher --input_path dense --output_path dense/meshed-delaunay.ply
 ### Notes
 Feature extraction and sequential matching can be accelerated using GPU, and cloud densification and mesh generation can only be performed using GPU.
 An Ubuntu-ROS2 container can only run COLMAP without GPU.

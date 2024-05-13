@@ -78,6 +78,9 @@
 # colmap point_triangulator --database_path colmap_ws/dataset.db  --image_path colmap_ws/images --input_path colmap_ws/triangulator/ --output_path colmap_ws/sparse
 # colmap point_triangulator --database_path colmap_ws/dataset.db  --image_path colmap_ws/images --input_path colmap_ws/sparse/it1/bundle/ --output_path colmap_ws/sparse/it2 
 # colmap bundle_adjuster --input_path colmap_ws/sparse/it1/bundle/ --output_path 
+# colmap feature_extractor --database_path /working/colmap_ws/dataset.db --image_path /working/dataset_ws/images --ImageReader.mask_path /working/dataset_ws/masks --ImageReader.camera_model SIMPLE_PINHOLE --ImageReader.single_camera_per_folder 1 --ImageReader.camera_params 765.9,640.0,360.0
+
+
 
 import os
 import subprocess
