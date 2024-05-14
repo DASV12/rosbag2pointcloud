@@ -6,7 +6,7 @@ Cameras:
     image_topic: "/video_mapping/right/image_raw"
     get_intrinsics_from_topic: false
     cam_info_topic: "/video_mapping/right/camera_info" # intrinsics
-    time_filter: 0 #s
+    time_filter: 2 #s
     distance_filter: 1.5 #m
     intrinsics: # if intrinsics not from topic
       frame_id: "right"
@@ -19,7 +19,7 @@ Cameras:
       r: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
       p: [256.520905, 0.0, 338.412784, 0.0, 0.0, 349.866089, 173.027438, 0.0, 0.0, 0.0, 1.0, 0.0]
     # extrinsics if sync pose with /tf
-    sync_pose: "tf" # (tf, GPS, None) default None
+    sync_pose: "None" # (tf, GPS, None) default None
     # delta_sampler_time: # default 0.0s # trabajo futuro
     # delta_sampler_distance: # default 0.0m # trabajo futuro
     include_inertial_link: false # drop % of images

@@ -471,6 +471,9 @@ class RosBagSerializer(object):
                 cy = self.cams_params[self.flag_camera]["k"][1, 2]
                 if not self.is_gps:
                     exif_dict["Exif"][piexif.ExifIFD.FocalLength] = (int(fx*1000), 1000)  # Distancia focal en milímetros
+                    exif_dict["Exif"][piexif.ExifIFD.DateTimeOriginal] = str(actual_time).encode("utf-8")
+                    exif_bytes = piexif.dump(exif_dict)
+                    piexif.insert(exif_bytes, image_path)
                 #exif_dict["Exif"][piexif.ExifIFD.PixelXDimension] = int(cx)  # Punto central en el eje x
                 #exif_dict["Exif"][piexif.ExifIFD.PixelYDimension] = int(cy)  # Punto central en el eje y
 
@@ -495,6 +498,7 @@ class RosBagSerializer(object):
                         exif_dict["GPS"][piexif.GPSIFD.GPSLongitudeRef] = 'E' if longitude >= 0 else 'W'
                         exif_dict["GPS"][piexif.GPSIFD.GPSLongitude] = ((lon_deg, 1), (lon_min, 1), (lon_sec, 1000))
                         exif_dict["GPS"][piexif.GPSIFD.GPSAltitude] = (int(altitude*1000), 1000)  # Altitud en metros
+                        exif_dict["Exif"][piexif.ExifIFD.DateTimeOriginal] = str(actual_time).encode("utf-8")
                         #print(exif_dict)
 
                 #print(exif_dict)
@@ -607,8 +611,9 @@ class RosBagSerializer(object):
                     #tf_file_path = os.path.join(self.imu_gps_output_dir, "tf_data.txt")
                     tf_file_path = os.path.join(self.imu_gps_output_dir, self.flag_camera)
                     os.makedirs(tf_file_path, exist_ok=True)
-                    tf_file_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "tf_data.txt")
+                    tf_file_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "images.txt")
                     image_list_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "image_list.txt")
+                    tf_data_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "tf_data.txt")
                     if self.prev_image_filename != image_filename:
                         with open(tf_file_path, "a") as tf_file:
                             orientation_str = ' '.join(map(str, q_inverse))
@@ -616,6 +621,9 @@ class RosBagSerializer(object):
                             tf_file.write(tf_info)
                         with open(image_list_path, "a") as tf_file:
                             tf_info = f"{image_filename}\n"
+                            tf_file.write(tf_info)
+                        with open(tf_data_path, "a") as tf_file:
+                            tf_info = f"{image_filename} {pose_x} {pose_y} {pose_z}\n"
                             tf_file.write(tf_info)
 
 
@@ -1194,6 +1202,21 @@ class RosBagSerializer(object):
                     #if topic == "/camera/color/image_raw":
                     if topic.endswith("/image_raw"):
                         self.i += 1
+            
+            if sync_pose == "tf":
+                # Crear empty model para point triangulator
+                cameras_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "cameras.txt")
+                points_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "points3D.txt")
+                height = camera_info.get("intrinsics").get("height")
+                width = camera_info.get("intrinsics").get("width")
+                foco = camera_info.get("intrinsics").get("k")[0]
+                with open(cameras_path, "a") as tf_file:
+                    tf_info = f"{1} {'SIMPLE_PINHOLE'} {width} {height} {foco} {width/2} {height/2}\n\n"
+                    tf_file.write(tf_info) # 1 SIMPLE_PINHOLE 1280 720 765.9 640 360
+                with open(points_path, "w") as tf_file:
+                    #tf_info = f"{image_filename}\n"
+                    #tf_file.write()
+                    pass
             #
             self.read_cameras.append(camera_name)
 
