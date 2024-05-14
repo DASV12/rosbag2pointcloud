@@ -160,10 +160,10 @@ def procesar_configuracion(config):
     GPU = config["GPU"]
     PT_cycle = config["PT_cycle"]
     reconstruction = config["reconstruction"]
-
-    #print(config)
     for clave, valor in config.items():
         print(f"{clave}: {valor}")
+
+    
 
 def main():
     #archivo_configuracion = input("Please enter the path to the YAML file: ")
