@@ -7,7 +7,8 @@ Cameras:
     image_topic: "/video_mapping/right/image_raw"
     get_intrinsics_from_topic: false
     cam_info_topic: "/video_mapping/right/camera_info" # intrinsics
-    time_filter: 1.5 #s
+    time_filter: 0 #s
+    distance_filter: 1 #m
     intrinsics: # if intrinsics not from topic
       frame_id: "right"
       height: 720 #360
@@ -31,7 +32,8 @@ Cameras:
     image_topic: "/camera/color/image_raw"
     get_intrinsics_from_topic: true
     cam_info_topic: "/camera/color/camera_info" # intrinsics
-    time_filter: 5 #s
+    time_filter: 0 #s
+    distance_filter: 1 #m
     intrinsics: # if intrinsics not from topic
       frame_id: "front"
       height: 720 #360

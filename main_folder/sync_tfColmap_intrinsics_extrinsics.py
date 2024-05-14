@@ -196,8 +196,9 @@ class RosBagSerializer(object):
         self.flag_camera = None
         self.prev_time = 0.0
         self.time_filter = 0.0
+        self.prev_x = 0.0
+        self.prev_y = 0.0
         self.distance_filter = 0.0
-
 
 
     def sync_callback(self, *msgs):
@@ -331,6 +332,28 @@ class RosBagSerializer(object):
                     cosy_cosp = 1 - 2 * (q[2] ** 2 + q[3] ** 2)
                     rz_e_inertial_link = np.arctan2(siny_cosp, cosy_cosp) # inertial link no aporta rotaciones en Z
                     inertial = True
+
+        if tf_data:
+            pose_odom = np.array([x_odom, y_odom])
+            Rz_odom = np.array([[np.cos(rz_e_odom), -np.sin(rz_e_odom)],
+                                [np.sin(rz_e_odom), np.cos(rz_e_odom)]])
+            # Traslación en base_link
+            pose_base_link = np.array([x_base_link, y_base_link])
+            R_base_link = np.dot(Rz_odom, pose_base_link)
+            pose_x_base = pose_odom[0] + R_base_link[0]
+            pose_y_base = pose_odom[1] + R_base_link[1]
+            actual_dist = np.sqrt((pose_x_base - self.prev_x)**2 +(pose_y_base - self.prev_y)**2)
+            if (actual_dist) < self.distance_filter:
+                    save_image = False
+            else:
+                self.prev_x = pose_x_base
+                self.prev_y = pose_y_base
+                #print("mayor distancia")
+            # print("\n",pose_x_base)
+            # print(pose_y_base)
+            # print(actual_dist)
+            # input("pose bot")
+
 
         # Guardar las imágenes en el directorio de salida con intrinsics y GPS
         if save_image:
@@ -1109,6 +1132,8 @@ class RosBagSerializer(object):
             self.rosbag.seek(0)  # Reiniciar la lectura al principio
             self.i = 0
             self.prev_time = 0
+            self.prev_x = 0.0
+            self.prev_y = 0.0
 
             while self.rosbag.has_next():
                 (topic, data, t) = self.rosbag.read_next()
