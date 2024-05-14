@@ -109,11 +109,12 @@ class RosBagSerializer(object):
         self.is_gps = bool
 
         # self.imu_gps_output_dir = os.path.join(os.path.expanduser('/working'), 'colmap_ws')
-        self.imu_gps_output_dir = os.path.expanduser(os.path.join(self.output_dir, "dataset_ws/lists"))
+        # self.imu_gps_output_dir = os.path.expanduser(os.path.join(self.output_dir, "dataset_ws/lists"))
+        self.imu_gps_output_dir = os.path.expanduser(os.path.join(self.output_dir, "lists"))
         os.makedirs(self.imu_gps_output_dir, exist_ok=True)
 
-        # self.output_dir = os.path.join(os.path.expanduser(self.output_dir), 'images')
-        self.output_dir = os.path.join(os.path.join(os.path.expanduser(self.output_dir), 'dataset_ws'), 'images')
+        self.output_dir = os.path.join(os.path.expanduser(self.output_dir), 'images')
+        # self.output_dir = os.path.join(os.path.join(os.path.expanduser(self.output_dir), 'dataset_ws'), 'images')
         os.makedirs(self.output_dir, exist_ok=True)
 
 
@@ -140,6 +141,7 @@ class RosBagSerializer(object):
 
         self.cams_params = {}  # for all usb cameras
         self.static_tf = {}
+        
 
         # Check if rosbag is compressed
         if rosbag_path.endswith(".zstd"):
@@ -192,6 +194,9 @@ class RosBagSerializer(object):
         self.prev_image_filename = None
         self.read_cameras = []
         self.flag_camera = None
+        self.prev_time = 0.0
+        self.time_filter = 0.0
+        self.distance_filter = 0.0
 
 
 
@@ -207,6 +212,7 @@ class RosBagSerializer(object):
         gps_data = {}
         tf_data = {}
         inertial = False
+        save_image = True
 
         def rotation_matrix_to_quaternion(R):
             trace = np.trace(R)
@@ -254,6 +260,19 @@ class RosBagSerializer(object):
             # Get the timestamp of the message
             if "/image_raw" in topic:
                 timestamp = msg.header.stamp if hasattr(msg.header, 'stamp') else None
+                #print("\n", timestamp.sec + timestamp.nanosec * 1e-9)
+                #print(timestamp)
+                actual_time = timestamp.sec + timestamp.nanosec * 1e-9
+                if (actual_time - self.prev_time) < self.time_filter:
+                    save_image = False
+                else:
+                    self.prev_time = actual_time
+            #timestamp = timestamp.sec + timestamp.nanosec * 1e-9
+            
+            
+            # aca iria el filtro de tiempo
+            #inicializo una variable de temporizador actual y anterior en 0 con self.
+
 
             # Get messages parsed data
             if isinstance(msg, sensor_msgs.msg.CompressedImage) or isinstance(msg, sensor_msgs.msg.Image):
@@ -314,254 +333,254 @@ class RosBagSerializer(object):
                     inertial = True
 
         # Guardar las imágenes en el directorio de salida con intrinsics y GPS
-        for topic, img_data in img_data.items():
-            ##
-            # nombre de carpetas
-            # puedo hacer un while recorriendo el configuracion hasta encontrar el topic de la imagen y ahí extraer todos los datos
-            # cameras_config = self.configuracion.get("Cameras", {})  # Obtener la configuración de las cámaras
-            # topic_match = False
-            # while not topic_match:
-            #     for camera_name, camera_info in cameras_config.items():
-            #         image_topic = camera_info.get("image_topic")
-            #         if image_topic == topic:
-            #             if camera_name in self.read_cameras:
-            #                 continue
-            #             topic_match = True
-            #             folder_name = camera_name
-            #             break
-            folder_name = self.flag_camera
-            ##
-            # primero hacer la parte de ingresar la tf static manual con multiples transformadas
-            # luego agregar que lea el arbol e ingrese al proceso anterior los datos
-            # para los extrinsics puedo hacer la multiplicacion de matrices en el process rosbag y pasar solo el resultado acá
-            # no necesito diferencial x_left, x_right... porque el flag asegura que es la informacion correcta
-            ##
-            transform = self.static_tf[self.flag_camera]["data"]
-            translation = transform["translation"] 
-            x_camara = translation["x"]
-            y_camara = translation["y"]
-            z_camara = translation["z"]
-            rotation = transform["rotation"]
-            rx_camara = rotation["x"]
-            ry_camara = rotation["y"]
-            rz_camara = rotation["z"]
-            rw_camara = rotation["w"]
-            q_camara = np.array([rw_camara, rx_camara, ry_camara, rz_camara])
+        if save_image:
+            for topic, img_data in img_data.items(): # si no hay items en img_data, se salta el for por completo?
+            # solo habra 1 img_data en cada llamado del callback
+                ##
+                # nombre de carpetas
+                # puedo hacer un while recorriendo el configuracion hasta encontrar el topic de la imagen y ahí extraer todos los datos
+                # cameras_config = self.configuracion.get("Cameras", {})  # Obtener la configuración de las cámaras
+                # topic_match = False
+                # while not topic_match:
+                #     for camera_name, camera_info in cameras_config.items():
+                #         image_topic = camera_info.get("image_topic")
+                #         if image_topic == topic:
+                #             if camera_name in self.read_cameras:
+                #                 continue
+                #             topic_match = True
+                #             folder_name = camera_name
+                #             break
+                folder_name = self.flag_camera
+                ##
+                # primero hacer la parte de ingresar la tf static manual con multiples transformadas
+                # luego agregar que lea el arbol e ingrese al proceso anterior los datos
+                # para los extrinsics puedo hacer la multiplicacion de matrices en el process rosbag y pasar solo el resultado acá
+                # no necesito diferencial x_left, x_right... porque el flag asegura que es la informacion correcta
+                ##
+                if tf_data:
+                    transform = self.static_tf[self.flag_camera]["data"]
+                    translation = transform["translation"] 
+                    x_camara = translation["x"]
+                    y_camara = translation["y"]
+                    z_camara = translation["z"]
+                    rotation = transform["rotation"]
+                    rx_camara = rotation["x"]
+                    ry_camara = rotation["y"]
+                    rz_camara = rotation["z"]
+                    rw_camara = rotation["w"]
+                    q_camara = np.array([rw_camara, rx_camara, ry_camara, rz_camara])
 
 
 
-            # tf_data = {
-            # "translation": {
-            #     "x": transform[4],
-            #     "y": transform[5],
-            #     "z": transform[6],
-            # },
-            # "rotation": {
-            #     "x": transform[1],
-            #     "y": transform[2],
-            #     "z": transform[3],
-            #     "w": transform[0],
-###
-            # if "/video_mapping/left/image_raw" in topic:
-            #     #folder_name = "left"
-            #     #base_link to camera aproximate
-            #     x_left = 0.12
-            #     y_left = 0.17
-            #     z_left = 0.42
-            #     #quaternion
-            #     rx_left = -0.7071068
-            #     ry_left = 0.0
-            #     rz_left = 0.0
-            #     rw_left = 0.7071068
-            #     # original: q= x-0.8163137, y0, z0, w0.5776088, x: -109.4349378, y: 0, z: 0
-            #     # corrected extrinsics -0.7071068, 0, 0, 0.7071068 x: -90, y:0, z:0
-            #     q_left = np.array([rw_left, rx_left, ry_left, rz_left])
-            # elif "/video_mapping/right/image_raw" in topic:
-            #     #folder_name = "right"
-            #     x_right = 0.12
-            #     y_right = -0.17
-            #     z_right = 0.42
-            #     rx_right = 0.0
-            #     ry_right = 0.7071068
-            #     rz_right = -0.7071068
-            #     rw_right = 0.0
-            #     # original: q= -0.0006500096108334489, -0.8163134720127956, 0.5776085883690786, 0.0004599349963122468,  x: 109.4349605, y: -0.0860471, z: -179.969639 
-            #     # corrected extrinsics 0, 0.7071068, -0.7071068, 0 x: 90, y:0, z:-180
-            #     q_right = np.array([rw_right, rx_right, ry_right, rz_right])
-            # elif "/camera/color/image_raw" in topic:
-            #     #folder_name = "front"
-            #     x_front = 0.21
-            #     y_front = -0.041
-            #     z_front = 0.443
-            #     # rx_front = -0.2 -90
-            #     # ry_front = 15.6 + 90
-            #     # rz_front = 0
-            #     rx0_front = -0.0014452419080478315
-            #     ry0_front = 0.1353299789430733
-            #     rz0_front = 0.000197400740513704
-            #     rw0_front = 0.9907995100463273
-            #     q0_front = np.array([rw0_front, rx0_front, ry0_front, rz0_front])
-            #     rx1_front = -0.5
-            #     ry1_front = 0.4999999999999999
-            #     rz1_front = -0.5
-            #     rw1_front = 0.5000000000000001
-            #     q1_front = np.array([rw1_front, rx1_front, ry1_front, rz1_front])
-            # else:
-            #     folder_name = "unknown"
-###
-            
-            if not os.path.exists(os.path.join(self.output_dir, folder_name)):
-                os.makedirs(os.path.join(self.output_dir, folder_name))
-
-            image_filename = f"{folder_name}_image_{self.i+1:04d}.jpg"
-            image_path = os.path.join(self.output_dir, folder_name, image_filename)
-            if not self.is_gps:
-                cv2.imwrite(image_path, img_data)
-                exif_dict = piexif.load(image_path)
-            # Agregar información sobre la distancia focal y los puntos centrales
-            fx = self.cams_params[self.flag_camera]["k"][0, 0]
-            fy = self.cams_params[self.flag_camera]["k"][1, 1]
-            cx = self.cams_params[self.flag_camera]["k"][0, 2]
-            cy = self.cams_params[self.flag_camera]["k"][1, 2]
-            if not self.is_gps:
-                exif_dict["Exif"][piexif.ExifIFD.FocalLength] = (int(fx*1000), 1000)  # Distancia focal en milímetros
-            #exif_dict["Exif"][piexif.ExifIFD.PixelXDimension] = int(cx)  # Punto central en el eje x
-            #exif_dict["Exif"][piexif.ExifIFD.PixelYDimension] = int(cy)  # Punto central en el eje y
-
-            # Guardar la información de GPS en el EXIF de la imagen
-            if 'gps' in imu_gps_data:
-                #exif_dict = piexif.load(image_path)
-                latitude = imu_gps_data['gps']['latitude']
-                longitude = imu_gps_data['gps']['longitude']
-                altitude = imu_gps_data['gps']['altitude']
-                lat = abs(latitude)
-                lon = abs(longitude)
-                lat_deg = int(lat)
-                lat_min = int((lat - lat_deg) * 60)
-                lat_sec = int(((lat - lat_deg) * 60 - lat_min) * 60 * 1000)
-                lon_deg = int(lon)
-                lon_min = int((lon - lon_deg) * 60)
-                lon_sec = int(((lon - lon_deg) * 60 - lon_min) * 60 * 1000)
-                # Asignar valores de latitud, longitud y altitud al diccionario EXIF
-                if not self.is_gps:
-                    exif_dict["GPS"][piexif.GPSIFD.GPSLatitudeRef] = 'N' if latitude >= 0 else 'S'
-                    exif_dict["GPS"][piexif.GPSIFD.GPSLatitude] = ((lat_deg, 1), (lat_min, 1), (lat_sec, 1000))
-                    exif_dict["GPS"][piexif.GPSIFD.GPSLongitudeRef] = 'E' if longitude >= 0 else 'W'
-                    exif_dict["GPS"][piexif.GPSIFD.GPSLongitude] = ((lon_deg, 1), (lon_min, 1), (lon_sec, 1000))
-                    exif_dict["GPS"][piexif.GPSIFD.GPSAltitude] = (int(altitude*1000), 1000)  # Altitud en metros
-                    #print(exif_dict)
-
-            #print(exif_dict)
-            if gps_data:
-                    gps_file_path = os.path.join(self.imu_gps_output_dir, "gps_data.txt")
-                    with open(gps_file_path, "a") as gps_file:
-                        gps_info = f"{image_filename} {gps_data['latitude']} {gps_data['longitude']} {gps_data['altitude']}\n"
-                        gps_file.write(gps_info)
-            # Save updated EXIF data back to the image
-                    if not self.is_gps:
-                        exif_bytes = piexif.dump(exif_dict)
-                        piexif.insert(exif_bytes, image_path)
-                        imu_gps_data.pop("gps")
-
-            if tf_data:
-                pose_odom = np.array([x_odom, y_odom])
-                Rz_odom = np.array([[np.cos(rz_e_odom), -np.sin(rz_e_odom)],
-                                    [np.sin(rz_e_odom), np.cos(rz_e_odom)]])
-                # Traslación en base_link
-                pose_base_link = np.array([x_base_link, y_base_link])
-                R_base_link = np.dot(Rz_odom, pose_base_link)
-                pose_x_base = pose_odom[0] + R_base_link[0]
-                pose_y_base = pose_odom[1] + R_base_link[1]
-                pose_base = np.array([pose_x_base, pose_y_base])
-                Rz_base_link = np.array([[np.cos(rz_e_base_link), -np.sin(rz_e_base_link)],
-                                    [np.sin(rz_e_base_link), np.cos(rz_e_base_link)]])
-                q_odom_base = multiply_quaternions(q_odom, q_base)
-                #inertial
-                if inertial:
-                    q_odom_base = multiply_quaternions(q_odom_base, q_inertial)
-
-                #inertial
-###
-                # #rot base y camaras
+                # tf_data = {
+                # "translation": {
+                #     "x": transform[4],
+                #     "y": transform[5],
+                #     "z": transform[6],
+                # },
+                # "rotation": {
+                #     "x": transform[1],
+                #     "y": transform[2],
+                #     "z": transform[3],
+                #     "w": transform[0],
                 # if "/video_mapping/left/image_raw" in topic:
-                #     traslation_left_camera = np.array([x_left, y_left])
-                #     t_left_camera = np.dot(Rz_base_link, traslation_left_camera)
-                #     pose_x = pose_base[0] + t_left_camera[0]
-                #     pose_y = pose_base[1] + t_left_camera[1]
-                #     pose_z = z_left
-                #     orientation = multiply_quaternions(q_odom_base, q_left)
+                #     #folder_name = "left"
+                #     #base_link to camera aproximate
+                #     x_left = 0.12
+                #     y_left = 0.17
+                #     z_left = 0.42
+                #     #quaternion
+                #     rx_left = -0.7071068
+                #     ry_left = 0.0
+                #     rz_left = 0.0
+                #     rw_left = 0.7071068
+                #     # original: q= x-0.8163137, y0, z0, w0.5776088, x: -109.4349378, y: 0, z: 0
+                #     # corrected extrinsics -0.7071068, 0, 0, 0.7071068 x: -90, y:0, z:0
+                #     q_left = np.array([rw_left, rx_left, ry_left, rz_left])
                 # elif "/video_mapping/right/image_raw" in topic:
-                #     traslation_right_camera = np.array([x_right, y_right])
-                #     t_right_camera = np.dot(Rz_base_link, traslation_right_camera)
-                #     pose_x = pose_base[0] + t_right_camera[0]
-                #     pose_y = pose_base[1] + t_right_camera[1]
-                #     pose_z = z_right
-                #     orientation = multiply_quaternions(q_odom_base, q_right)
+                #     #folder_name = "right"
+                #     x_right = 0.12
+                #     y_right = -0.17
+                #     z_right = 0.42
+                #     rx_right = 0.0
+                #     ry_right = 0.7071068
+                #     rz_right = -0.7071068
+                #     rw_right = 0.0
+                #     # original: q= -0.0006500096108334489, -0.8163134720127956, 0.5776085883690786, 0.0004599349963122468,  x: 109.4349605, y: -0.0860471, z: -179.969639 
+                #     # corrected extrinsics 0, 0.7071068, -0.7071068, 0 x: 90, y:0, z:-180
+                #     q_right = np.array([rw_right, rx_right, ry_right, rz_right])
                 # elif "/camera/color/image_raw" in topic:
-                #     traslation_front_camera = np.array([x_front, y_front])
-                #     t_front_camera = np.dot(Rz_base_link, traslation_front_camera)
-                #     pose_x = pose_base[0] + t_front_camera[0]
-                #     pose_y = pose_base[1] + t_front_camera[1]
-                #     pose_z = z_front
-                #     orientation = multiply_quaternions(q_odom_base, q0_front)
-                #     orientation = multiply_quaternions(orientation, q1_front)
-###
-                traslation_complete_camera = np.array([x_camara, y_camara])
-                t_complete_camera = np.dot(Rz_base_link, traslation_complete_camera)
-                pose_x = pose_base[0] + t_complete_camera[0]
-                pose_y = pose_base[1] + t_complete_camera[1]
-                pose_z = z_camara
-                orientation = multiply_quaternions(q_odom_base, q_camara)
+                #     #folder_name = "front"
+                #     x_front = 0.21
+                #     y_front = -0.041
+                #     z_front = 0.443
+                #     # rx_front = -0.2 -90
+                #     # ry_front = 15.6 + 90
+                #     # rz_front = 0
+                #     rx0_front = -0.0014452419080478315
+                #     ry0_front = 0.1353299789430733
+                #     rz0_front = 0.000197400740513704
+                #     rw0_front = 0.9907995100463273
+                #     q0_front = np.array([rw0_front, rx0_front, ry0_front, rz0_front])
+                #     rx1_front = -0.5
+                #     ry1_front = 0.4999999999999999
+                #     rz1_front = -0.5
+                #     rw1_front = 0.5000000000000001
+                #     q1_front = np.array([rw1_front, rx1_front, ry1_front, rz1_front])
+                # else:
+                #     folder_name = "unknown"
+                
+                if not os.path.exists(os.path.join(self.output_dir, folder_name)):
+                    os.makedirs(os.path.join(self.output_dir, folder_name))
 
-                # Vector de traslación T
-                T = np.array([pose_x, pose_y, pose_z])
-                # Cuaternión q (qxyz)
-                q = orientation
-                # Normaliza el cuaternión
-                # q /= np.linalg.norm(q)
-                qw, qx, qy, qz = q
-                # Calcula los elementos de la matriz de rotación
-                R = np.array([
-                    [1 - 2*qy**2 - 2*qz**2, 2*qx*qy - 2*qz*qw, 2*qx*qz + 2*qy*qw],
-                    [2*qx*qy + 2*qz*qw, 1 - 2*qx**2 - 2*qz**2, 2*qy*qz - 2*qx*qw],
-                    [2*qx*qz - 2*qy*qw, 2*qy*qz + 2*qx*qw, 1 - 2*qx**2 - 2*qy**2]
-                ])
-                # Transpone la matriz de rotación
-                R_transpose = R.T
-                # Invierte la matriz de rotación transpuesta
-                R_inverse = np.linalg.inv(R_transpose)
-                # Calcula R^T * T
-                pose_colmap = np.dot(-R_transpose, T)
-                # Convierte la matriz de rotación inversa en un cuaternión
-                q_inverse = rotation_matrix_to_quaternion(R_transpose)
-                #enmascarar coordenadas cartesianas como GPS para poder guardar en exif
-                deg_x = int(pose_x)
-                min_x = int((pose_x - deg_x) * 60 * 10000)
-                deg_y = int(pose_y)
-                min_y = int((pose_y - deg_y) * 60 * 10000)
-                # GPS de EXIF solo acepta numeros positivos por lo que el bag tiene que grabarse sobre el lado positivo del mapa
-                exif_dict["GPS"][piexif.GPSIFD.GPSLatitude] = ((deg_x, 1), (min_x, 10000), (0, 1))
-                exif_dict["GPS"][piexif.GPSIFD.GPSLatitudeRef] = 'N' if pose_y >= 0 else 'S'
-                exif_dict["GPS"][piexif.GPSIFD.GPSLongitude] = ((deg_y, 1), (min_y, 10000), (0, 1))
-                exif_dict["GPS"][piexif.GPSIFD.GPSLongitudeRef] = 'E' if pose_x >= 0 else 'W'
-                exif_dict["GPS"][piexif.GPSIFD.GPSAltitude] = (int(pose_z*1000), 1000)  # Altitud en metros
-                exif_dict["Exif"][piexif.ExifIFD.DateTimeOriginal] = str(timestamp).encode("utf-8")
-                # se define un valor cualquiera de altitud para que el GPS pueda ser interpretado por COLMAP
-                # COLMAP guarda estos datos con una prcisión de mm
-                # COLMAP muestra la informacion en grados decimales,
-                # aunque realmente provienen de coordenadas cartesinas con "map" como referencia
-                # Ejm: LAT=78.753 (metros desde el 0,0 del map del rosbag), LON=103.704, ALT=1500.000
-                tf_file_path = os.path.join(self.imu_gps_output_dir, "tf_data.txt")
-                if self.prev_image_filename != image_filename:
-                    with open(tf_file_path, "a") as tf_file:
-                        orientation_str = ' '.join(map(str, q_inverse))
-                        tf_info = f"{self.id} {orientation_str} {pose_colmap[0]} {pose_colmap[1]} {pose_colmap[2]} {1} {folder_name}/{image_filename}\n\n"
-                        tf_file.write(tf_info)
-                    self.prev_image_filename = image_filename
-                    self.id += 1
+                image_filename = f"{folder_name}_image_{self.i+1:04d}.jpg"
+                image_path = os.path.join(self.output_dir, folder_name, image_filename)
+                if not self.is_gps:
+                    cv2.imwrite(image_path, img_data)
+                    exif_dict = piexif.load(image_path)
+                # Agregar información sobre la distancia focal y los puntos centrales
+                fx = self.cams_params[self.flag_camera]["k"][0, 0]
+                fy = self.cams_params[self.flag_camera]["k"][1, 1]
+                cx = self.cams_params[self.flag_camera]["k"][0, 2]
+                cy = self.cams_params[self.flag_camera]["k"][1, 2]
+                if not self.is_gps:
+                    exif_dict["Exif"][piexif.ExifIFD.FocalLength] = (int(fx*1000), 1000)  # Distancia focal en milímetros
+                #exif_dict["Exif"][piexif.ExifIFD.PixelXDimension] = int(cx)  # Punto central en el eje x
+                #exif_dict["Exif"][piexif.ExifIFD.PixelYDimension] = int(cy)  # Punto central en el eje y
+
+                # Guardar la información de GPS en el EXIF de la imagen
+                if 'gps' in imu_gps_data:
+                    #exif_dict = piexif.load(image_path)
+                    latitude = imu_gps_data['gps']['latitude']
+                    longitude = imu_gps_data['gps']['longitude']
+                    altitude = imu_gps_data['gps']['altitude']
+                    lat = abs(latitude)
+                    lon = abs(longitude)
+                    lat_deg = int(lat)
+                    lat_min = int((lat - lat_deg) * 60)
+                    lat_sec = int(((lat - lat_deg) * 60 - lat_min) * 60 * 1000)
+                    lon_deg = int(lon)
+                    lon_min = int((lon - lon_deg) * 60)
+                    lon_sec = int(((lon - lon_deg) * 60 - lon_min) * 60 * 1000)
+                    # Asignar valores de latitud, longitud y altitud al diccionario EXIF
+                    if not self.is_gps:
+                        exif_dict["GPS"][piexif.GPSIFD.GPSLatitudeRef] = 'N' if latitude >= 0 else 'S'
+                        exif_dict["GPS"][piexif.GPSIFD.GPSLatitude] = ((lat_deg, 1), (lat_min, 1), (lat_sec, 1000))
+                        exif_dict["GPS"][piexif.GPSIFD.GPSLongitudeRef] = 'E' if longitude >= 0 else 'W'
+                        exif_dict["GPS"][piexif.GPSIFD.GPSLongitude] = ((lon_deg, 1), (lon_min, 1), (lon_sec, 1000))
+                        exif_dict["GPS"][piexif.GPSIFD.GPSAltitude] = (int(altitude*1000), 1000)  # Altitud en metros
+                        #print(exif_dict)
+
+                #print(exif_dict)
+                if gps_data:
+                        gps_file_path = os.path.join(self.imu_gps_output_dir, "gps_data.txt")
+                        with open(gps_file_path, "a") as gps_file:
+                            gps_info = f"{image_filename} {gps_data['latitude']} {gps_data['longitude']} {gps_data['altitude']}\n"
+                            gps_file.write(gps_info)
                 # Save updated EXIF data back to the image
-                exif_bytes = piexif.dump(exif_dict)
-                piexif.insert(exif_bytes, image_path)
+                        if not self.is_gps:
+                            exif_bytes = piexif.dump(exif_dict)
+                            piexif.insert(exif_bytes, image_path)
+                            imu_gps_data.pop("gps")
+
+                if tf_data:
+                    pose_odom = np.array([x_odom, y_odom])
+                    Rz_odom = np.array([[np.cos(rz_e_odom), -np.sin(rz_e_odom)],
+                                        [np.sin(rz_e_odom), np.cos(rz_e_odom)]])
+                    # Traslación en base_link
+                    pose_base_link = np.array([x_base_link, y_base_link])
+                    R_base_link = np.dot(Rz_odom, pose_base_link)
+                    pose_x_base = pose_odom[0] + R_base_link[0]
+                    pose_y_base = pose_odom[1] + R_base_link[1]
+                    pose_base = np.array([pose_x_base, pose_y_base])
+                    Rz_base_link = np.array([[np.cos(rz_e_base_link), -np.sin(rz_e_base_link)],
+                                        [np.sin(rz_e_base_link), np.cos(rz_e_base_link)]])
+                    q_odom_base = multiply_quaternions(q_odom, q_base)
+                    #inertial
+                    if inertial:
+                        q_odom_base = multiply_quaternions(q_odom_base, q_inertial)
+
+                    #inertial
+                    # #rot base y camaras
+                    # if "/video_mapping/left/image_raw" in topic:
+                    #     traslation_left_camera = np.array([x_left, y_left])
+                    #     t_left_camera = np.dot(Rz_base_link, traslation_left_camera)
+                    #     pose_x = pose_base[0] + t_left_camera[0]
+                    #     pose_y = pose_base[1] + t_left_camera[1]
+                    #     pose_z = z_left
+                    #     orientation = multiply_quaternions(q_odom_base, q_left)
+                    # elif "/video_mapping/right/image_raw" in topic:
+                    #     traslation_right_camera = np.array([x_right, y_right])
+                    #     t_right_camera = np.dot(Rz_base_link, traslation_right_camera)
+                    #     pose_x = pose_base[0] + t_right_camera[0]
+                    #     pose_y = pose_base[1] + t_right_camera[1]
+                    #     pose_z = z_right
+                    #     orientation = multiply_quaternions(q_odom_base, q_right)
+                    # elif "/camera/color/image_raw" in topic:
+                    #     traslation_front_camera = np.array([x_front, y_front])
+                    #     t_front_camera = np.dot(Rz_base_link, traslation_front_camera)
+                    #     pose_x = pose_base[0] + t_front_camera[0]
+                    #     pose_y = pose_base[1] + t_front_camera[1]
+                    #     pose_z = z_front
+                    #     orientation = multiply_quaternions(q_odom_base, q0_front)
+                    #     orientation = multiply_quaternions(orientation, q1_front)
+                    traslation_complete_camera = np.array([x_camara, y_camara])
+                    t_complete_camera = np.dot(Rz_base_link, traslation_complete_camera)
+                    pose_x = pose_base[0] + t_complete_camera[0]
+                    pose_y = pose_base[1] + t_complete_camera[1]
+                    pose_z = z_camara
+                    orientation = multiply_quaternions(q_odom_base, q_camara)
+
+                    # Vector de traslación T
+                    T = np.array([pose_x, pose_y, pose_z])
+                    # Cuaternión q (qxyz)
+                    q = orientation
+                    # Normaliza el cuaternión
+                    # q /= np.linalg.norm(q)
+                    qw, qx, qy, qz = q
+                    # Calcula los elementos de la matriz de rotación
+                    R = np.array([
+                        [1 - 2*qy**2 - 2*qz**2, 2*qx*qy - 2*qz*qw, 2*qx*qz + 2*qy*qw],
+                        [2*qx*qy + 2*qz*qw, 1 - 2*qx**2 - 2*qz**2, 2*qy*qz - 2*qx*qw],
+                        [2*qx*qz - 2*qy*qw, 2*qy*qz + 2*qx*qw, 1 - 2*qx**2 - 2*qy**2]
+                    ])
+                    # Transpone la matriz de rotación
+                    R_transpose = R.T
+                    # Invierte la matriz de rotación transpuesta
+                    R_inverse = np.linalg.inv(R_transpose)
+                    # Calcula R^T * T
+                    pose_colmap = np.dot(-R_transpose, T)
+                    # Convierte la matriz de rotación inversa en un cuaternión
+                    q_inverse = rotation_matrix_to_quaternion(R_transpose)
+                    #enmascarar coordenadas cartesianas como GPS para poder guardar en exif
+                    deg_x = int(pose_x)
+                    min_x = int((pose_x - deg_x) * 60 * 10000)
+                    deg_y = int(pose_y)
+                    min_y = int((pose_y - deg_y) * 60 * 10000)
+                    # GPS de EXIF solo acepta numeros positivos por lo que el bag tiene que grabarse sobre el lado positivo del mapa
+                    exif_dict["GPS"][piexif.GPSIFD.GPSLatitude] = ((deg_x, 1), (min_x, 10000), (0, 1))
+                    exif_dict["GPS"][piexif.GPSIFD.GPSLatitudeRef] = 'N' if pose_y >= 0 else 'S'
+                    exif_dict["GPS"][piexif.GPSIFD.GPSLongitude] = ((deg_y, 1), (min_y, 10000), (0, 1))
+                    exif_dict["GPS"][piexif.GPSIFD.GPSLongitudeRef] = 'E' if pose_x >= 0 else 'W'
+                    exif_dict["GPS"][piexif.GPSIFD.GPSAltitude] = (int(pose_z*1000), 1000)  # Altitud en metros
+                    exif_dict["Exif"][piexif.ExifIFD.DateTimeOriginal] = str(actual_time).encode("utf-8")
+                    #exif_dict["Exif"][piexif.ExifIFD.DateTimeOriginal] = str(timestamp).encode("utf-8")
+                    # se define un valor cualquiera de altitud para que el GPS pueda ser interpretado por COLMAP
+                    # COLMAP guarda estos datos con una prcisión de mm
+                    # COLMAP muestra la informacion en grados decimales,
+                    # aunque realmente provienen de coordenadas cartesinas con "map" como referencia
+                    # Ejm: LAT=78.753 (metros desde el 0,0 del map del rosbag), LON=103.704, ALT=1500.000
+                    tf_file_path = os.path.join(self.imu_gps_output_dir, "tf_data.txt")
+                    if self.prev_image_filename != image_filename:
+                        with open(tf_file_path, "a") as tf_file:
+                            orientation_str = ' '.join(map(str, q_inverse))
+                            tf_info = f"{self.id} {orientation_str} {pose_colmap[0]} {pose_colmap[1]} {pose_colmap[2]} {1} {folder_name}/{image_filename}\n\n"
+                            tf_file.write(tf_info)
+                        self.prev_image_filename = image_filename
+                        self.id += 1
+                    # Save updated EXIF data back to the image
+                    exif_bytes = piexif.dump(exif_dict)
+                    piexif.insert(exif_bytes, image_path)
 
     def parse_msg(self, msg: tp.Any, topic: str) -> tp.Dict[str, tp.Any]:
         """
@@ -1046,6 +1065,8 @@ class RosBagSerializer(object):
         ##
         for camera_name, camera_info in cameras_config.items():
             self.flag_camera = camera_name
+            self.time_filter = camera_info.get("time_filter")
+            self.distance_filter = camera_info.get("distance_filter")
             image_raw_topic = camera_info.get("image_topic")
             sync_pose = camera_info.get("sync_pose")
             include_inertial_link = camera_info.get("include_inertial_link")
@@ -1087,6 +1108,7 @@ class RosBagSerializer(object):
             self.ts.registerCallback(self.sync_callback)
             self.rosbag.seek(0)  # Reiniciar la lectura al principio
             self.i = 0
+            self.prev_time = 0
 
             while self.rosbag.has_next():
                 (topic, data, t) = self.rosbag.read_next()
@@ -1208,8 +1230,8 @@ def create_masks():
                 cv2.imwrite(output_path, combined_inverted_mask)
 
 def create_image_lists(overlap=10):
-    input_folder= "/working/colmap_ws/images"
-    output_base_folder= "/working/colmap_ws/lists_folder"
+    input_folder= "/working/dataset_ws/images"
+    output_base_folder= "/working/dataset_ws/lists"
     for folder_name in os.listdir(input_folder):
         image_folder = os.path.join(input_folder, folder_name)
         output_folder = os.path.join(output_base_folder, folder_name)
@@ -1320,7 +1342,7 @@ def main(
         imshow=imshow,
     )
     rosbag_serializer.process_rosbag()
-    create_masks()
+    #create_masks()
     #create_image_lists()
 
     if debug:

@@ -42,10 +42,10 @@ Por ahora solo camara derecha en folder "right_camera" crear:
 2. Desde la carpeta "camera_images" ejecutar:
 	colmap feature_extractor --database_path dataset.db --image_path images --ImageReader.mask_path masks --ImageReader.camera_model SIMPLE_PINHOLE --ImageReader.single_camera 1
 Si la GPU si es reconocida por el container este comando debería funcionar. Si sale error intentar agregar: --SiftExtraction.use_gpu 0
-
+colmap feature_extractor --database_path /working/colmap_ws/dataset.db --image_path /working/dataset_ws/images --ImageReader.mask_path /working/dataset_ws/masks --ImageReader.camera_model SIMPLE_PINHOLE --ImageReader.single_camera_per_folder 1 --ImageReader.camera_params 765.9,640.0,360.0 
 3. colmap sequential_matcher --database_path dataset.db (--SiftExtraction.use_gpu 0)
 
-4. colmap mapper --database_path database.db --image_path images --output_path sparse --image_list_path list.txt
+4. colmap mapper --database_path dataset.db --image_path images --output_path sparse --image_list_path list.txt
 
 5. Opcional para ver PLY del sparse model: colmap model_converter --input_path sparse/0 --output_path sparse/0/sparseModel.ply --output_type PLY
 Antes de ejecutar el comando revisar si en la carpeta sparse se creó la carpeta "0" o si los archivos "images, cameras, points3D" se crearon directamente en "sparse". En ese caso borrar "/0" de la linea de comandos.
@@ -115,12 +115,14 @@ docker build -t="colmap:cuda" .
 docker run --gpus all -w /working -v $1:/working -it colmap:cuda
 -# Replace with your working directory (path to cloned repository) as this:
 
+Ros2+Colmap CLI
 docker run \
     --gpus all \
     -w /working \
     -v /home/user/Documents/.../SfM_CUDA:/working \
     -it colmap:cuda
 
+Ros2+Enable Colmap GUI
 docker run \
     -e QT_XCB_GL_INTEGRATION=xcb_egl \
     -e DISPLAY=$DISPLAY \
@@ -141,7 +143,7 @@ sudo apt install qtchooser
 sudo apt install libqt5gui5
 
 ### Dataset generator
-Download your rosbag under /main_folder and from Sfm_CUDA run:
-python3 main_folder/sync_rosbag_tf_seek_read_all_GPS_fused.py
+Configure dataset_config.yaml (the file is the file is self-descriptive) and then run:
+sync_rosbag_tf_seek_read_all_GPS_fused.py
 python3 main_folder/colmap_pipeline.py
 

@@ -33,11 +33,11 @@ def run_colmap_bundle_adjuster(input_path, output_path):
         print("Bundle adjustment failed.")
 
 if __name__ == "__main__":
-    database_path = "/working/colmap_ws/dataset.db"
+    database_path = "/working/colmap_ws/models/front/complete/dataset.db"
     image_path = "/working/dataset_ws/images"
-    input_path = "/working/colmap_ws/sparse/"
-    output_path = "/working/colmap_ws/sparse/"
-    num_iterations = 40
+    input_path = "/working/colmap_ws/models/front/complete/"
+    output_path = "/working/colmap_ws/models/front/complete/"
+    num_iterations = 10
 
     for i in range(num_iterations):
         print(f"Iteration {i+1}:")
