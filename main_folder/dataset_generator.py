@@ -97,6 +97,7 @@ class RosBagSerializer(object):
         self.original_topics = topics
         self.queue_size = queue_size
         self.time_delta = time_delta
+        print("self.time_delta", self.time_delta)
         self.imshow = imshow
         self.fps = fps
         self.undistort = undistort
@@ -1203,6 +1204,16 @@ class RosBagSerializer(object):
                     if topic.endswith("/image_raw"):
                         self.i += 1
             
+            if sync_pose == "GPS":
+                # Crear empty model para point triangulator
+                cameras_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "cameras.txt")
+                height = camera_info.get("intrinsics").get("height")
+                width = camera_info.get("intrinsics").get("width")
+                foco = camera_info.get("intrinsics").get("k")[0]
+                with open(cameras_path, "a") as tf_file:
+                    tf_info = f"{1} {'SIMPLE_PINHOLE'} {width} {height} {foco} {width/2} {height/2}\n\n"
+                    tf_file.write(tf_info)
+
             if sync_pose == "tf":
                 # Crear empty model para point triangulator
                 cameras_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "cameras.txt")
@@ -1354,6 +1365,7 @@ def main(
     undistort: bool = True,
     debug: bool = False,
     imshow: bool = False,
+    #delta_sync: float = 0.1,
 ):
     """
     Main function for processing the rosbag files.
@@ -1376,6 +1388,7 @@ def main(
     bag_path = configuracion["bag_path"]
     output = configuracion["output_dir"]
     generate_masks = configuracion["generate_masks"]
+    delta_sync = configuracion["delta_sync"]
     # topics_cameras = configuracion["topics_cameras"]
     sync_topics = []
     cameras_config = configuracion.get("Cameras", {})  # Obtener la configuración de las cámaras
@@ -1408,7 +1421,7 @@ def main(
         bag_path,
         output,
         sync_topics,
-        time_delta=0.1,
+        time_delta=delta_sync,
         fps=fps,
         undistort=undistort,
         imshow=imshow,
