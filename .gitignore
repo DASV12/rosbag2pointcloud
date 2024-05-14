@@ -18,7 +18,7 @@
 *.pt
 *.h5
 mask_rcnn_coco.h5
-changelog.txt
+main_folder/changelog.txt
 
 # Ignorar contenido dentro de la carpeta colmap_ws
 /colmap_ws/*
