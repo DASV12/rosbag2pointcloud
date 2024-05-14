@@ -82,61 +82,96 @@
 
 
 
+# import os
+# import subprocess
+
+# def run_colmap_mapper(image_folder, list_folder, output_folder):
+#     os.makedirs("colmap_ws", exist_ok=True)
+#     # Run feature extractor and feature matching
+#     commands = [
+#      "colmap feature_extractor --database_path /working/colmap_ws/dataset.db --image_path /working/dataset_ws/images --ImageReader.mask_path /working/dataset_ws/masks --ImageReader.camera_model SIMPLE_PINHOLE --ImageReader.single_camera_per_folder 1",
+#      "colmap sequential_matcher --database_path /working/colmap_ws/dataset.db"
+#     ]
+#     for cmd in commands:
+#      subprocess.run(cmd, shell=True)
+
+#     # Get the list of subfolder names in the image folder
+#     image_subfolders = sorted([name for name in os.listdir(image_folder) if os.path.isdir(os.path.join(image_folder, name))])
+
+#     # Get the list of subfolder names in the list folder
+#     list_subfolders = sorted([name for name in os.listdir(list_folder) if os.path.isdir(os.path.join(list_folder, name))])
+
+#     # Create output folders for each subfolder in the image and list folders
+#     for image_subfolder, list_subfolder in zip(image_subfolders, list_subfolders):
+#         # Build the full paths for image and list subfolders
+#         image_subfolder_path = os.path.join(image_folder, image_subfolder)
+#         list_subfolder_path = os.path.join(list_folder, list_subfolder)
+
+#         # Build the output subfolder path in the sparse directory
+#         output_subfolder_path = os.path.join(output_folder, image_subfolder)
+
+#         # Create the output subfolder if it doesn't exist
+#         os.makedirs(output_subfolder_path, exist_ok=True)
+
+#         # Get the list of list files in the current list subfolder
+#         list_files = sorted([f for f in os.listdir(list_subfolder_path) if f.startswith("list")])
+
+#         # Iterate over the list files and run COLMAP mapper for each
+#         for list_file in list_files:
+#             # Construct the full path for the list file
+#             list_path = os.path.join(list_subfolder_path, list_file)
+
+#             # Execute COLMAP mapper command with the specified parameters
+#             command = f"colmap mapper --database_path /working/colmap_ws/dataset.db --image_path {image_folder} --output_path {output_subfolder_path} --image_list_path {list_path} --Mapper.multiple_models 0"
+#             os.system(command)
+            
+#             # Define the output model path
+#             output_model_path = os.path.join(output_subfolder_path, f"SparseModel{list_file.split('.')[0]}.ply")
+
+#             # Convert the model to PLY format
+#             command_converter = f"colmap model_converter --input_path {output_subfolder_path}/0 --output_path {output_model_path} --output_type PLY"
+#             #os.system(command_converter)
+
+# # Define the paths of the directories
+# image_folder = "/working/colmap_ws/images"
+# list_folder = "/working/colmap_ws/lists_folder"
+# output_folder = "/working/colmap_ws/sparse"
+
+# # Execute the function with the specified paths
+# run_colmap_mapper(image_folder, list_folder, output_folder)
+
+
+
+import yaml
 import os
 import subprocess
 
-def run_colmap_mapper(image_folder, list_folder, output_folder):
-    os.makedirs("colmap_ws", exist_ok=True)
-    # Run feature extractor and feature matching
-    commands = [
-     "colmap feature_extractor --database_path /working/colmap_ws/dataset.db --image_path /working/dataset_ws/images --ImageReader.mask_path /working/dataset_ws/masks --ImageReader.camera_model SIMPLE_PINHOLE --ImageReader.single_camera_per_folder 1",
-     "colmap sequential_matcher --database_path /working/colmap_ws/dataset.db"
-    ]
-    for cmd in commands:
-     subprocess.run(cmd, shell=True)
+def leer_configuracion(archivo):
+    with open(archivo, 'r') as f:
+        config = yaml.safe_load(f)
+    return config
 
-    # Get the list of subfolder names in the image folder
-    image_subfolders = sorted([name for name in os.listdir(image_folder) if os.path.isdir(os.path.join(image_folder, name))])
+def procesar_configuracion(config):
+    dataset_path = config["dataset_path"]
+    output_dir = config["output_dir"]
+    pose_type = config["pose_type"]
+    cameras = config["cameras"]
+    matcher = config["matcher"]
+    GPU = config["GPU"]
+    PT_cycle = config["PT_cycle"]
+    reconstruction = config["reconstruction"]
 
-    # Get the list of subfolder names in the list folder
-    list_subfolders = sorted([name for name in os.listdir(list_folder) if os.path.isdir(os.path.join(list_folder, name))])
+    #print(config)
+    for clave, valor in config.items():
+        print(f"{clave}: {valor}")
 
-    # Create output folders for each subfolder in the image and list folders
-    for image_subfolder, list_subfolder in zip(image_subfolders, list_subfolders):
-        # Build the full paths for image and list subfolders
-        image_subfolder_path = os.path.join(image_folder, image_subfolder)
-        list_subfolder_path = os.path.join(list_folder, list_subfolder)
+def main():
+    #archivo_configuracion = input("Please enter the path to the YAML file: ")
+    archivo_configuracion = "main_folder/config_colmap.yaml"
+    config = leer_configuracion(archivo_configuracion)
+    procesar_configuracion(config)
 
-        # Build the output subfolder path in the sparse directory
-        output_subfolder_path = os.path.join(output_folder, image_subfolder)
+if __name__ == "__main__":
+    main()
 
-        # Create the output subfolder if it doesn't exist
-        os.makedirs(output_subfolder_path, exist_ok=True)
-
-        # Get the list of list files in the current list subfolder
-        list_files = sorted([f for f in os.listdir(list_subfolder_path) if f.startswith("list")])
-
-        # Iterate over the list files and run COLMAP mapper for each
-        for list_file in list_files:
-            # Construct the full path for the list file
-            list_path = os.path.join(list_subfolder_path, list_file)
-
-            # Execute COLMAP mapper command with the specified parameters
-            command = f"colmap mapper --database_path /working/colmap_ws/dataset.db --image_path {image_folder} --output_path {output_subfolder_path} --image_list_path {list_path} --Mapper.multiple_models 0"
-            os.system(command)
-            
-            # Define the output model path
-            output_model_path = os.path.join(output_subfolder_path, f"SparseModel{list_file.split('.')[0]}.ply")
-
-            # Convert the model to PLY format
-            command_converter = f"colmap model_converter --input_path {output_subfolder_path}/0 --output_path {output_model_path} --output_type PLY"
-            #os.system(command_converter)
-
-# Define the paths of the directories
-image_folder = "/working/colmap_ws/images"
-list_folder = "/working/colmap_ws/lists_folder"
-output_folder = "/working/colmap_ws/sparse"
-
-# Execute the function with the specified paths
-run_colmap_mapper(image_folder, list_folder, output_folder)
 

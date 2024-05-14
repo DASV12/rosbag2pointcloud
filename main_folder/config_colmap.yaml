@@ -1,10 +1,9 @@
-para colmap pedir listas para reconstruir (pueden ser multiples)
-si es completo, si se va a hacer merge, si es con known poses
-tipo de matcher
-si tiene masks
-cuantos ciclos de refinement si fue known pose
-que tipo de matcher
-si se construye db con extraccion de 1 sola camara o varias ( influye en la elección de matcher y mapper)
-si la ubicacion es gps o tf
-#la mayoría de configuraciones corren por defecto, Colmap tiene cientos de configuraciones en sus etapas,
-# leer un archivo init con todas las confiduraciones de Colmap
+dataset_path: "/working/dataset_ws/rightGPS_right_GPS_timefilters"
+output_dir: "working/colmap_sw/poblado2camarasRight" #is taken as output dir for sparse reconstruction and input dir for dense reconstruction
+pose_type: "tf" # "tf": known pose reconstruction, "GPS": SfM pose estimator reconstruction
+cameras: [right_time0, right_time1] # cameras to reconstruct under dataset_path
+matcher: "spatial" # "exhaustive", "sequential". Sequential only for 1 camera because it would match last camera1 image with first camera2 image
+GPU: True
+PT_cycle: 10 # point refinement cycles for known pose reconstructions
+reconstruction: "sparse" # "dense"
+
