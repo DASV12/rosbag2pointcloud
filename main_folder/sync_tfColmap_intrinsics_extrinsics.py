@@ -14,6 +14,7 @@ import sys
 import torch
 import zstandard
 import yaml
+import shutil
 from ultralytics import YOLO
 from cv_bridge import CvBridge
 from rclpy.serialization import deserialize_message
@@ -111,6 +112,8 @@ class RosBagSerializer(object):
         # self.imu_gps_output_dir = os.path.join(os.path.expanduser('/working'), 'colmap_ws')
         # self.imu_gps_output_dir = os.path.expanduser(os.path.join(self.output_dir, "dataset_ws/lists"))
         self.imu_gps_output_dir = os.path.expanduser(os.path.join(self.output_dir, "lists"))
+        if os.path.exists(self.imu_gps_output_dir):
+            shutil.rmtree(self.imu_gps_output_dir)
         os.makedirs(self.imu_gps_output_dir, exist_ok=True)
 
         self.output_dir = os.path.join(os.path.expanduser(self.output_dir), 'images')
@@ -120,24 +123,24 @@ class RosBagSerializer(object):
 
         
 
-        tf_data_file = os.path.join(self.imu_gps_output_dir, 'tf_data.txt')
-        gps_data_file = os.path.join(self.imu_gps_output_dir, 'gps_data.txt')
+        # tf_data_file = os.path.join(self.imu_gps_output_dir, 'tf_data.txt')
+        # gps_data_file = os.path.join(self.imu_gps_output_dir, 'gps_data.txt')
 
-        # Verificar si el archivo existe
-        if os.path.exists(tf_data_file):
-            # Eliminar el archivo si existe
-            os.remove(tf_data_file)
-            print("Archivo tf_data.txt reiniciado correctamente.")
-        else:
-            print("El archivo tf_data.txt no existe.")
+        # # Verificar si el archivo existe
+        # if os.path.exists(tf_data_file):
+        #     # Eliminar el archivo si existe
+        #     os.remove(tf_data_file)
+        #     print("Archivo tf_data.txt reiniciado correctamente.")
+        # else:
+        #     print("El archivo tf_data.txt no existe.")
 
-        # Verificar si el archivo existe
-        if os.path.exists(gps_data_file):
-            # Eliminar el archivo si existe
-            os.remove(gps_data_file)
-            print("Archivo gps_data.txt reiniciado correctamente.")
-        else:
-            print("El archivo gps_data.txt no existe.")
+        # # Verificar si el archivo existe
+        # if os.path.exists(gps_data_file):
+        #     # Eliminar el archivo si existe
+        #     os.remove(gps_data_file)
+        #     print("Archivo gps_data.txt reiniciado correctamente.")
+        # else:
+        #     print("El archivo gps_data.txt no existe.")
 
         self.cams_params = {}  # for all usb cameras
         self.static_tf = {}
@@ -496,9 +499,17 @@ class RosBagSerializer(object):
 
                 #print(exif_dict)
                 if gps_data:
-                        gps_file_path = os.path.join(self.imu_gps_output_dir, "gps_data.txt")
+                        gps_file_path = os.path.join(self.imu_gps_output_dir, self.flag_camera)
+                        image_list_path = os.path.join(self.imu_gps_output_dir, self.flag_camera)
+                        os.makedirs(gps_file_path, exist_ok=True)
+                        os.makedirs(image_list_path, exist_ok=True)
+                        gps_file_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "gps_data.txt")
+                        image_list_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "image_list.txt")
                         with open(gps_file_path, "a") as gps_file:
                             gps_info = f"{image_filename} {gps_data['latitude']} {gps_data['longitude']} {gps_data['altitude']}\n"
+                            gps_file.write(gps_info)
+                        with open(image_list_path, "a") as gps_file:
+                            gps_info = f"{image_filename}\n"
                             gps_file.write(gps_info)
                 # Save updated EXIF data back to the image
                         if not self.is_gps:
@@ -593,12 +604,21 @@ class RosBagSerializer(object):
                     # COLMAP muestra la informacion en grados decimales,
                     # aunque realmente provienen de coordenadas cartesinas con "map" como referencia
                     # Ejm: LAT=78.753 (metros desde el 0,0 del map del rosbag), LON=103.704, ALT=1500.000
-                    tf_file_path = os.path.join(self.imu_gps_output_dir, "tf_data.txt")
+                    #tf_file_path = os.path.join(self.imu_gps_output_dir, "tf_data.txt")
+                    tf_file_path = os.path.join(self.imu_gps_output_dir, self.flag_camera)
+                    os.makedirs(tf_file_path, exist_ok=True)
+                    tf_file_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "tf_data.txt")
+                    image_list_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "image_list.txt")
                     if self.prev_image_filename != image_filename:
                         with open(tf_file_path, "a") as tf_file:
                             orientation_str = ' '.join(map(str, q_inverse))
                             tf_info = f"{self.id} {orientation_str} {pose_colmap[0]} {pose_colmap[1]} {pose_colmap[2]} {1} {folder_name}/{image_filename}\n\n"
                             tf_file.write(tf_info)
+                        with open(image_list_path, "a") as tf_file:
+                            tf_info = f"{image_filename}\n"
+                            tf_file.write(tf_info)
+
+
                         self.prev_image_filename = image_filename
                         self.id += 1
                     # Save updated EXIF data back to the image
@@ -1178,13 +1198,16 @@ class RosBagSerializer(object):
             self.read_cameras.append(camera_name)
 
 
-def create_masks():
+def create_masks(output):
     # Load a pretrained YOLOv8n model
     model = YOLO('yolov8x-seg.pt')
 
     # Directorio base de entrada y salida
-    input_base_folder = '/working/dataset_ws/images'
-    output_base_folder = '/working/dataset_ws/masks'
+    #self.output_base
+    # input_base_folder = '/working/dataset_ws/images'
+    # output_base_folder = '/working/dataset_ws/masks'
+    input_base_folder = os.path.join(output, "images")
+    output_base_folder = os.path.join(output, "masks")
 
     # Iterar sobre las carpetas dentro del directorio base de entrada
     for folder_name in os.listdir(input_base_folder):
@@ -1329,6 +1352,7 @@ def main(
     # Acceder a las rutas de los archivos
     bag_path = configuracion["bag_path"]
     output = configuracion["output_dir"]
+    generate_masks = configuracion["generate_masks"]
     # topics_cameras = configuracion["topics_cameras"]
     sync_topics = []
     cameras_config = configuracion.get("Cameras", {})  # Obtener la configuración de las cámaras
@@ -1367,7 +1391,8 @@ def main(
         imshow=imshow,
     )
     rosbag_serializer.process_rosbag()
-    #create_masks()
+    if generate_masks:
+        create_masks(output)
     #create_image_lists()
 
     if debug:
