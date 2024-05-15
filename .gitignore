@@ -27,3 +27,4 @@ mask_rcnn_coco.h5
 /main_folder/old_codes/*
 /dataset_ws/*
 /sfm/*
+/dataset_ws_test/*
