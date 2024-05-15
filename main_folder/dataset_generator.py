@@ -511,10 +511,10 @@ class RosBagSerializer(object):
                         gps_file_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "gps_data.txt")
                         image_list_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "image_list.txt")
                         with open(gps_file_path, "a") as gps_file:
-                            gps_info = f"{image_filename} {gps_data['latitude']} {gps_data['longitude']} {gps_data['altitude']}\n"
+                            gps_info = f"{folder_name}/{image_filename} {gps_data['latitude']} {gps_data['longitude']} {gps_data['altitude']}\n"
                             gps_file.write(gps_info)
                         with open(image_list_path, "a") as gps_file:
-                            gps_info = f"{image_filename}\n"
+                            gps_info = f"{folder_name}/{image_filename}\n"
                             gps_file.write(gps_info)
                 # Save updated EXIF data back to the image
                         if not self.is_gps:
@@ -621,10 +621,10 @@ class RosBagSerializer(object):
                             tf_info = f"{self.id} {orientation_str} {pose_colmap[0]} {pose_colmap[1]} {pose_colmap[2]} {1} {folder_name}/{image_filename}\n\n"
                             tf_file.write(tf_info)
                         with open(image_list_path, "a") as tf_file:
-                            tf_info = f"{image_filename}\n"
+                            tf_info = f"{folder_name}/{image_filename}\n"
                             tf_file.write(tf_info)
                         with open(tf_data_path, "a") as tf_file:
-                            tf_info = f"{image_filename} {pose_x} {pose_y} {pose_z}\n"
+                            tf_info = f"{folder_name}/{image_filename} {pose_x} {pose_y} {pose_z}\n"
                             tf_file.write(tf_info)
 
 
@@ -1119,6 +1119,7 @@ class RosBagSerializer(object):
             self.flag_camera = camera_name
             self.time_filter = camera_info.get("time_filter")
             self.distance_filter = camera_info.get("distance_filter")
+            self.id = 1
             image_raw_topic = camera_info.get("image_topic")
             sync_pose = camera_info.get("sync_pose")
             include_inertial_link = camera_info.get("include_inertial_link")

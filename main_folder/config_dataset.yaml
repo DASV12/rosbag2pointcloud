@@ -1,5 +1,5 @@
 bag_path: "/working/sfm/sfm_0.mcap"
-output_dir: "/working/dataset_ws/2right_tf_time_distance_filters" # recommended: name the folder with the cameras, poses and filters used /working/dataset_ws/right_tf_right_GPS_timefilter
+output_dir: "/working/dataset_ws/2right_tf_time_distance_filters_derecho" # recommended: name the folder with the cameras, poses and filters used /working/dataset_ws/right_tf_right_GPS_timefilter
 generate_masks: True # filters people, cars, trucks and motorcycles
 delta_sync: 0.1
 Cameras:

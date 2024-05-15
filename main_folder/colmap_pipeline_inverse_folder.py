@@ -166,9 +166,9 @@ def PT_reconstruction(config):
     for camera in config["cameras"]:
         mask_flag = False
         ##
-        # image_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "images")
-        # mask_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "masks")
-        # list_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "lists")
+        image_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "images")
+        mask_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "masks")
+        list_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "lists")
         # print(image_path)
         # print(mask_path)
         # print(list_path)
@@ -188,7 +188,7 @@ def PT_reconstruction(config):
             mask_flag = True
         # leer camera params
         list_path_camera = os.path.join(list_path, camera)
-        cameras_file = os.path.join(list_path_camera, "cameras.txt")
+        cameras_file = os.path.join(list_path, "cameras.txt")
         with open(cameras_file, 'r') as f:
             line = f.readline()
             camera_description = line.split()
@@ -200,7 +200,7 @@ def PT_reconstruction(config):
             camera_params = ','.join([f, cx, cy])
         print("Camera params:", camera_params)
         # leer lista de imagenes
-        image_list_path = os.path.join(list_path_camera, "image_list.txt")
+        image_list_path = os.path.join(list_path, "image_list.txt")
         # ejecutar feature extractor
         command = [
         "colmap", "feature_extractor",
@@ -275,9 +275,8 @@ def PT_reconstruction(config):
     output_file_path = os.path.join(output_file_path, "images.txt")
     with open(points3D_output_file_path, 'w'):
         pass
-    #input("wait")
     for camera in config["cameras"]:
-        list_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], "lists")), camera)
+        list_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "lists")
         cameras_file_path = os.path.join(list_path, "cameras.txt")
         image_list_file_path = os.path.join(list_path, "image_list.txt")
         images_file_path = os.path.join(list_path, "images.txt")
