@@ -152,6 +152,38 @@ def leer_configuracion(archivo):
         config = yaml.safe_load(f)
     return config
 
+def run_colmap_point_triangulator(database_path, image_path, input_path, output_path):
+    command = [
+        "colmap", "point_triangulator",
+        "--database_path", database_path,
+        "--image_path", image_path,
+        "--input_path", input_path,
+        "--output_path", output_path
+    ]
+    
+    try:
+        # Run the command
+        subprocess.run(command, check=True)
+        print("Point triangulation completed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        print("Point triangulation failed.")
+
+def run_colmap_bundle_adjuster(input_path, output_path):
+    command = [
+        "colmap", "bundle_adjuster",
+        "--input_path", input_path,
+        "--output_path", output_path
+    ]
+    
+    try:
+        # Run the command
+        subprocess.run(command, check=True)
+        print("Bundle adjustment completed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        print("Bundle adjustment failed.")
+
 def PT_reconstruction(config):
     print("PT reconstruction")
     # if os.path.exists(os.path.expanduser(config["output_dir"])):
@@ -163,6 +195,9 @@ def PT_reconstruction(config):
     list_path = os.path.join(os.path.expanduser(config["dataset_path"]), "lists")
     camera_model = "SIMPLE_PINHOLE"
     single_camera_per_folder = str(1) 
+    input_path = os.path.join(os.path.expanduser(config["output_dir"]), "sparse")
+    output_path = input_path
+
     for camera in config["cameras"]:
         mask_flag = False
         ##
@@ -328,11 +363,35 @@ def PT_reconstruction(config):
                     print(f"No se encontró una coincidencia para el archivo: {image_filename}" )
         contador_camara += 1
         # print("camara: ", contador_camara-1)
-        # input("wait")
+        #input("wait")
+    ###
 
+
+    num_iterations = config["PT_cycle"]
     # ejecutar los ciclos de PT y BA sobre la misma carpeta /sparse
+    for i in range(num_iterations):
+        print(f"Iteration {i+1}:")
+        run_colmap_point_triangulator(database_path, image_path, input_path, output_path)
+        run_colmap_bundle_adjuster(input_path, output_path)
+        print("-" * 50)
 
     # convertir el modelo a .PLY
+    #colmap model_converter --input_path sparse/0 --output_path sparse/0/sparseModel.ply --output_type PLY
+    output_ply = os.path.join(output_path, "sparseModelPT.ply")
+    command = [
+        "colmap", "model_converter",  
+        "--input_path", input_path,
+        "--output_path", output_ply,
+        "--output_type", "PLY"
+    ]
+    try:
+        # Run the command
+        subprocess.run(command, check=True)
+        print("Converter completed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        print("Converter failed.")
+    ###
 
 
 
