@@ -513,10 +513,14 @@ class RosBagSerializer(object):
                         os.makedirs(image_list_path, exist_ok=True)
                         gps_file_path = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "gps_data.txt")
                         image_list_path = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "image_list.txt")
+                        image_list_path_original = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "image_list_original.txt")
                         with open(gps_file_path, "a") as gps_file:
                             gps_info = f"{image_filename} {gps_data['latitude']} {gps_data['longitude']} {gps_data['altitude']}\n"
                             gps_file.write(gps_info)
                         with open(image_list_path, "a") as gps_file:
+                            gps_info = f"{image_filename}\n"
+                            gps_file.write(gps_info)
+                        with open(image_list_path_original, "a") as gps_file:
                             gps_info = f"{image_filename}\n"
                             gps_file.write(gps_info)
                 # Save updated EXIF data back to the image
@@ -618,6 +622,7 @@ class RosBagSerializer(object):
                     os.makedirs(tf_file_path, exist_ok=True)
                     tf_file_path = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "images.txt")
                     image_list_path = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "image_list.txt")
+                    image_list_path_original = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "image_list_original.txt")
                     tf_data_path = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "tf_data.txt")
                     if self.prev_image_filename != image_filename:
                         with open(tf_file_path, "a") as tf_file:
@@ -625,6 +630,9 @@ class RosBagSerializer(object):
                             tf_info = f"{self.id} {orientation_str} {pose_colmap[0]} {pose_colmap[1]} {pose_colmap[2]} {1} {folder_name}/{image_filename}\n\n"
                             tf_file.write(tf_info)
                         with open(image_list_path, "a") as tf_file:
+                            tf_info = f"{image_filename}\n"
+                            tf_file.write(tf_info)
+                        with open(image_list_path_original, "a") as tf_file:
                             tf_info = f"{image_filename}\n"
                             tf_file.write(tf_info)
                         with open(tf_data_path, "a") as tf_file:
@@ -1121,6 +1129,9 @@ class RosBagSerializer(object):
         ##
         for camera_name, camera_info in cameras_config.items():
             self.flag_camera = camera_name
+            if os.path.exists(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists")):
+                shutil.rmtree(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"))
+            self.id = 1
             self.time_filter = camera_info.get("time_filter")
             self.distance_filter = camera_info.get("distance_filter")
             image_raw_topic = camera_info.get("image_topic")

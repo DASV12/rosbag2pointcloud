@@ -169,9 +169,9 @@ def PT_reconstruction(config):
         image_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "images")
         mask_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "masks")
         list_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "lists")
-        print(image_path)
-        print(mask_path)
-        print(list_path)
+        # print(image_path)
+        # print(mask_path)
+        # print(list_path)
         ##
         #comprobar que si exitan las imagenes
         image_path_camera = os.path.join(image_path, camera)
@@ -246,15 +246,15 @@ def PT_reconstruction(config):
     elif matcher == "spatial":
         command[1] = "spatial_matcher"
         new_command = [
-                "--SpatialMatching.is_gps", 0
+                "--SpatialMatching.is_gps", str(0)
             ]
         command.extend(new_command)
     else:
         raise ValueError(f"No valid matcher, only spatial, sequential or exhaustive.")
 
-    # print("Using ", command[1])
-    # print(command)
-    # input("wait")
+    print("Using ", command[1])
+    print(command)
+    input("wait")
     try:
         # Run the command
         subprocess.run(command, check=True)
@@ -262,6 +262,14 @@ def PT_reconstruction(config):
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}")
         print("Matcher failed.")
+    
+    # generar empty model en /sparse con las camaras requeridas y la image_list.txt de cada camara
+
+    # ejecutar los ciclos de PT y BA sobre la misma carpeta /sparse
+
+    # convertir el modelo a .PLY
+
+
 
 
 
