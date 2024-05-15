@@ -145,31 +145,116 @@
 import yaml
 import os
 import subprocess
+import shutil
 
 def leer_configuracion(archivo):
     with open(archivo, 'r') as f:
         config = yaml.safe_load(f)
     return config
 
-def procesar_configuracion(config):
-    dataset_path = config["dataset_path"]
-    output_dir = config["output_dir"]
-    pose_type = config["pose_type"]
-    cameras = config["cameras"]
-    matcher = config["matcher"]
-    GPU = config["GPU"]
-    PT_cycle = config["PT_cycle"]
-    reconstruction = config["reconstruction"]
-    for clave, valor in config.items():
-        print(f"{clave}: {valor}")
+def PT_reconstruction(config):
+    print("PT reconstruction")
+    if os.path.exists(os.path.expanduser(config["output_dir"])):
+            shutil.rmtree(os.path.expanduser(config["output_dir"]))
+    os.makedirs(os.path.expanduser(config["output_dir"]), exist_ok=True)
+    database_path = os.path.join(os.path.expanduser(config["output_dir"]), "database.db")
+    image_path = os.path.join(os.path.expanduser(config["dataset_path"]), "images")
+    mask_path = os.path.join(os.path.expanduser(config["dataset_path"]), "masks")
+    list_path = os.path.join(os.path.expanduser(config["dataset_path"]), "lists")
+    camera_model = "SIMPLE_PINHOLE"
+    single_camera_per_folder = str(1) 
+    for camera in config["cameras"]:
+        mask_flag = False
+        ##
+        image_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "images")
+        mask_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "masks")
+        list_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "lists")
+        print(image_path)
+        print(mask_path)
+        print(list_path)
+        input("wait")
+        ##
+        #comprobar que si exitan las imagenes
+        image_path_camera = os.path.join(image_path, camera)
+        if not os.path.exists(image_path):
+            raise ValueError(f"Images Not Fund for: {camera}")
+        else:
+            print("Images found for:", camera)
+        # verificar si hay masks para agregarlas al comando de colmap
+        mask_path_camera = os.path.join(mask_path, camera)
+        if not os.path.exists(mask_path):
+            print("No masks found for:", camera)
+        else:
+            print("Masks found for:", camera)
+            mask_flag = True
+        # leer camera params
+        list_path_camera = os.path.join(list_path, camera)
+        cameras_file = os.path.join(list_path, "cameras.txt")
+        with open(cameras_file, 'r') as f:
+            line = f.readline()
+            camera_description = line.split()
+            # Obtener los elementos de las posiciones 5, 6 y 7 (índices 4, 5 y 6 en Python)
+            f = camera_description[4]
+            cx = camera_description[5]
+            cy = camera_description[6]
+            # Concatenar los elementos separados por comas y agregarlos a la lista
+            camera_params = ','.join([f, cx, cy])
+        print("Camera params:", camera_params)
+        # leer lista de imagenes
+        image_list_path = os.path.join(list_path, "image_list.txt")
+        # ejecutar feature extractor
+        command = [
+        "colmap", "feature_extractor",
+        "--database_path", database_path,
+        "--image_path", image_path,
+        "--ImageReader.camera_model", camera_model,
+        "--ImageReader.single_camera_per_folder", single_camera_per_folder,
+        "--image_list_path", image_list_path,
+        "--ImageReader.camera_params", camera_params
+        ]
+        if mask_flag:
+            # Agregar un nuevo comando
+            new_command = [
+                "--ImageReader.mask_path", mask_path
+            ]
+            # Extender la lista de comandos original con el nuevo comando
+            command.extend(new_command)
+        print("Lista de comandos:", command)
+        input("Wait")
+        try:
+            # Run the command
+            subprocess.run(command, check=True)
+            print("Feature extractor completed successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"Error: {e}")
+            print("Feature extractor failed.")
 
+
+
+
+def SfM_reconstruction(config):
+    print("SfM reconstruction")
     
+# dataset_path: "/working/dataset_ws/rightGPS_right_GPS_timefilters"
+# output_dir: "working/colmap_sw/poblado2camarasRight" #is taken as output dir for sparse reconstruction and input dir for dense reconstruction
+# pose_type: "tf" # "tf": known pose reconstruction, "GPS": SfM pose estimator reconstruction
+# cameras: [right_time0, right_time1] # cameras to reconstruct under dataset_path
+# matcher: "spatial" # "exhaustive", "sequential". Sequential only for 1 camera because it would match last camera1 image with first camera2 image
+# GPU: True
+# PT_cycle: 10 # point refinement cycles for known pose reconstructions
+# reconstruction: "sparse" # "dense"
+# segmentation_flag: 0
+# GPS_scalation_type: = "ENU" 
 
 def main():
     #archivo_configuracion = input("Please enter the path to the YAML file: ")
     archivo_configuracion = "main_folder/config_colmap.yaml"
     config = leer_configuracion(archivo_configuracion)
-    procesar_configuracion(config)
+    pose_type = config["pose_type"]
+    if pose_type == "tf":
+        PT_reconstruction(config)
+    elif pose_type == "GPS":
+        SfM_reconstruction(config)
 
 if __name__ == "__main__":
     main()
