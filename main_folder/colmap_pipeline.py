@@ -270,24 +270,28 @@ def PT_reconstruction(config):
     if os.path.exists(output_file_path):
         shutil.rmtree(output_file_path)
     os.makedirs(output_file_path, exist_ok=True)
+    cameras_output_file_path = os.path.join(output_file_path, "cameras.txt")
+    points3D_output_file_path = os.path.join(output_file_path, "points3D.txt")
     output_file_path = os.path.join(output_file_path, "images.txt")
+    with open(points3D_output_file_path, 'w'):
+        pass
     for camera in config["cameras"]:
         list_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "lists")
         cameras_file_path = os.path.join(list_path, "cameras.txt")
         image_list_file_path = os.path.join(list_path, "image_list.txt")
         images_file_path = os.path.join(list_path, "images.txt")
-        
-        # print(output_file_path)
-        # input("wait")
+    
+        #with open(cameras_file_path, 'r') as cameras_file:
+        with open(cameras_file_path, 'r') as origen, open(cameras_output_file_path, 'a') as destino:
+            # Lee la primera línea del archivo de origen
+            primera_linea = origen.readline()
+            elements = primera_linea.split()
+            elements[0] = str(contador_camara)
+            output_line = ' '.join(elements)
+            # Escribe la primera línea en el archivo de destino
+            destino.write(output_line + "\n")
 
-        # image_list_file_path = "/ruta/a/image_list.txt"
 
-        # Variable de contador
-        
-        # print(image_list_file_path)
-        # print(images_file_path)
-        # print(output_file_path)
-        # input("wait")
         # Abre los archivos de entrada y salida
         with open(image_list_file_path, 'r') as image_list_file, \
                 open(images_file_path, 'r') as images_file, \
