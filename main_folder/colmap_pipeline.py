@@ -252,9 +252,9 @@ def PT_reconstruction(config):
     else:
         raise ValueError(f"No valid matcher, only spatial, sequential or exhaustive.")
 
-    print("Using ", command[1])
-    print(command)
-    input("wait")
+    # print("Using ", command[1])
+    # print(command)
+    # input("wait")
     try:
         # Run the command
         subprocess.run(command, check=True)
@@ -264,6 +264,66 @@ def PT_reconstruction(config):
         print("Matcher failed.")
     
     # generar empty model en /sparse con las camaras requeridas y la image_list.txt de cada camara
+    contador_camara = 1
+    contador = 1
+    output_file_path = os.path.expanduser(os.path.join(config["output_dir"], "sparse"))
+    if os.path.exists(output_file_path):
+        shutil.rmtree(output_file_path)
+    os.makedirs(output_file_path, exist_ok=True)
+    output_file_path = os.path.join(output_file_path, "images.txt")
+    for camera in config["cameras"]:
+        list_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], camera)), "lists")
+        cameras_file_path = os.path.join(list_path, "cameras.txt")
+        image_list_file_path = os.path.join(list_path, "image_list.txt")
+        images_file_path = os.path.join(list_path, "images.txt")
+        
+        # print(output_file_path)
+        # input("wait")
+
+        # image_list_file_path = "/ruta/a/image_list.txt"
+
+        # Variable de contador
+        
+        # print(image_list_file_path)
+        # print(images_file_path)
+        # print(output_file_path)
+        # input("wait")
+        # Abre los archivos de entrada y salida
+        with open(image_list_file_path, 'r') as image_list_file, \
+                open(images_file_path, 'r') as images_file, \
+                open(output_file_path, 'a') as output_file:
+
+            # Resto del código permanece igual
+            for image_list_line in image_list_file:
+                image_filename = image_list_line.strip()
+                # print(image_filename)
+                # input("wait")
+                images_file.seek(0)
+                found_match = False
+                for images_line in images_file:
+                    elements = images_line.split()
+                    if elements:
+                        images_filename = elements[-1]
+                        # print(images_filename)
+                        # input("wait")
+                        if image_filename == images_filename:
+                            # Reemplazar el primer elemento por el contador
+                            elements[0] = str(contador)
+                            elements[8] = str(contador_camara)
+                            # print(elements)
+                            # input("wait")
+                            output_line = ' '.join(elements)
+                            # print(output_line)
+                            # input("wait")
+                            output_file.write(output_line + "\n\n")
+                            contador += 1
+                            found_match = True
+                            break
+                if not found_match:
+                    print(f"No se encontró una coincidencia para el archivo: {image_filename}" )
+        contador_camara += 1
+        # print("camara: ", contador_camara-1)
+        # input("wait")
 
     # ejecutar los ciclos de PT y BA sobre la misma carpeta /sparse
 

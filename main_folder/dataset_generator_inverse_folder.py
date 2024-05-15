@@ -627,7 +627,8 @@ class RosBagSerializer(object):
                     if self.prev_image_filename != image_filename:
                         with open(tf_file_path, "a") as tf_file:
                             orientation_str = ' '.join(map(str, q_inverse))
-                            tf_info = f"{self.id} {orientation_str} {pose_colmap[0]} {pose_colmap[1]} {pose_colmap[2]} {1} {folder_name}/{image_filename}\n\n"
+                            #tf_info = f"{self.id} {orientation_str} {pose_colmap[0]} {pose_colmap[1]} {pose_colmap[2]} {1} {folder_name}/{image_filename}\n\n"
+                            tf_info = f"{self.id} {orientation_str} {pose_colmap[0]} {pose_colmap[1]} {pose_colmap[2]} {1} {image_filename}\n\n"
                             tf_file.write(tf_info)
                         with open(image_list_path, "a") as tf_file:
                             tf_info = f"{image_filename}\n"
