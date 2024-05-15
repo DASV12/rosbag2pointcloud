@@ -154,8 +154,8 @@ def leer_configuracion(archivo):
 
 def PT_reconstruction(config):
     print("PT reconstruction")
-    if os.path.exists(os.path.expanduser(config["output_dir"])):
-            shutil.rmtree(os.path.expanduser(config["output_dir"]))
+    # if os.path.exists(os.path.expanduser(config["output_dir"])):
+    #         shutil.rmtree(os.path.expanduser(config["output_dir"]))
     os.makedirs(os.path.expanduser(config["output_dir"]), exist_ok=True)
     database_path = os.path.join(os.path.expanduser(config["output_dir"]), "database.db")
     image_path = os.path.join(os.path.expanduser(config["dataset_path"]), "images")
@@ -172,7 +172,6 @@ def PT_reconstruction(config):
         print(image_path)
         print(mask_path)
         print(list_path)
-        input("wait")
         ##
         #comprobar que si exitan las imagenes
         image_path_camera = os.path.join(image_path, camera)
@@ -219,8 +218,8 @@ def PT_reconstruction(config):
             ]
             # Extender la lista de comandos original con el nuevo comando
             command.extend(new_command)
-        print("Lista de comandos:", command)
-        input("Wait")
+        # print("Lista de comandos:", command)
+        # input("Wait")
         try:
             # Run the command
             subprocess.run(command, check=True)
@@ -228,6 +227,41 @@ def PT_reconstruction(config):
         except subprocess.CalledProcessError as e:
             print(f"Error: {e}")
             print("Feature extractor failed.")
+
+    #colmap sequential_matcher --database_path dataset.db (--SiftExtraction.use_gpu 0)
+    use_gpu = int(bool(config["use_gpu"]))
+    matcher = config["matcher"]
+    command = [
+        "colmap",  # Comando base
+        "spatial_matcher",  # Valor predeterminado
+        "--database_path", database_path,
+        "--SiftMatching.use_gpu", str(use_gpu)
+    ]
+
+    # Switch para determinar el comando en función del valor de matcher
+    if matcher == "exhaustive":
+        command[1] = "exhaustive_matcher"
+    elif matcher == "sequential":
+        command[1] = "sequential_matcher"
+    elif matcher == "spatial":
+        command[1] = "spatial_matcher"
+        new_command = [
+                "--SpatialMatching.is_gps", 0
+            ]
+        command.extend(new_command)
+    else:
+        raise ValueError(f"No valid matcher, only spatial, sequential or exhaustive.")
+
+    # print("Using ", command[1])
+    # print(command)
+    # input("wait")
+    try:
+        # Run the command
+        subprocess.run(command, check=True)
+        print("Matcher completed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        print("Matcher failed.")
 
 
 

@@ -1,9 +1,9 @@
-dataset_path: "/working/dataset_ws_test/rightGPS_rightGPS_timefilters"
+dataset_path: "/working/dataset_ws/rightGPS_rightGPS_timefilters_inverse_folders"
 output_dir: "/working/colmap_ws/poblado2camarasRight" #is taken as output dir for sparse reconstruction and input dir for dense reconstruction
 pose_type: "tf" # "tf": known pose reconstruction, "GPS": SfM pose estimator reconstruction
 cameras: [right_time0, right_time1] # cameras to reconstruct under dataset_path
-matcher: "spatial" # "exhaustive", "sequential". Sequential only for 1 camera because it would match last camera1 image with first camera2 image
-GPU: True
+matcher: "spatial" # "spatial" "exhaustive", "sequential". Sequential only for 1 camera because it would match last camera1 image with first camera2 image
+use_gpu: True
 PT_cycle: 10 # point refinement cycles for known pose reconstructions
 reconstruction: "sparse" # "dense"
 segmentation_flag: 0
