@@ -621,7 +621,7 @@ def main():
             f.write(f"{', '.join(map(str, image.tvec))} ")
             f.write(f"{image.camera_id} ")
             f.write(f"{image.name} ")
-            f.write("\n")
+            f.write("\n\n")
             # Image ID, quaternir, traslation, camera ID, image name
     
     with open(output_cameras_file_path, "a") as f:
@@ -633,7 +633,7 @@ def main():
             f.write(f"{camera.width} ")
             f.write(f"{camera.height} ")
             f.write(f"{', '.join(map(str, camera.params))} ")
-            f.write("\n\n")
+            f.write("\n")
 
     # if args.output_model is not None:
     #     write_model(

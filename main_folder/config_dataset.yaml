@@ -1,9 +1,9 @@
 bag_path: "/working/sfm/sfm_0.mcap"
-output_dir: "/working/dataset_ws/2right_tf_time_distance_filters_derecho" # recommended: name the folder with the cameras, poses and filters used /working/dataset_ws/right_tf_right_GPS_timefilter
+output_dir: "/working/colmap_ws/2right_tf_time_distance" # recommended: name the folder with the cameras, poses and filters used /working/dataset_ws/right_tf_right_GPS_timefilter
 generate_masks: True # filters people, cars, trucks and motorcycles
 delta_sync: 0.1
 Cameras:
-  right0: # Unique Name. This is also the name of the folder containing the images of the topic
+  camera_right0: # Unique Name. This is also the name of the folder containing the images of the topic
     image_topic: "/video_mapping/right/image_raw"
     get_intrinsics_from_topic: false
     cam_info_topic: "/video_mapping/right/camera_info" # intrinsics
@@ -28,7 +28,7 @@ Cameras:
     transform: [[0.0, 0.0, 0.7071068, -0.7071068, 0.12, -0.17, 0.42]] #,[1, 0, 0, 0, 0, -100, 0], [0.6532815, 0.2705981, -0.2705981, 0.6532815, 0, 0, 0]] #, [0.7071068, 0, 0, 0.7071068, 0, 0, 0]]
     # transform: [[0.0004599349963122468, -0.0006500096108334489, -0.8163134720127956, 0.5776085883690786, 0.12, -0.17, 0.42]] 
     #transform: [[w, qx, qy, qz, x, y, z], [w, qx, qy, qz, x, y, z]] # complete or multimple static transforms from robot base_link/inertial_link to camera
-  right1: # Unique Name. This is also the name of the folder containing the images of the topic
+  camera_right1: # Unique Name. This is also the name of the folder containing the images of the topic
     image_topic: "/video_mapping/right/image_raw"
     get_intrinsics_from_topic: false
     cam_info_topic: "/video_mapping/right/camera_info" # intrinsics
