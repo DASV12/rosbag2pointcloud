@@ -2,6 +2,7 @@ import sys
 import sqlite3
 import numpy as np
 import csv  # Importa el módulo CSV para facilitar la escritura en formato CSV
+import os
 
 
 IS_PYTHON3 = sys.version_info[0] >= 3
@@ -469,4 +470,9 @@ if __name__ == "__main__":
     # Llama a la función export_cameras_to_txt con la ruta de la base de datos y el nombre del archivo de salida
     #export_cameras_to_txt('dataset.db', 'cameras.txt')
     # Llama a la función export_images_to_txt con la ruta de la base de datos y el nombre del archivo de salida
-    export_images_to_txt('/working/colmap_ws/dataset.db', '/working/colmap_ws/imagesdb.txt')
+    output_file_path = os.path.expanduser("/working/colmap_ws/poblado2camarasRight/final_poses")
+    os.makedirs(output_file_path, exist_ok=True)
+    output_file_path = os.path.join(output_file_path, "images.txt")
+    print(output_file_path)
+    input("wait")
+    export_images_to_txt('/working/colmap_ws/poblado2camarasRight/database.db', output_file_path)

@@ -190,6 +190,8 @@ def PT_reconstruction(config):
     #         shutil.rmtree(os.path.expanduser(config["output_dir"]))
     os.makedirs(os.path.expanduser(config["output_dir"]), exist_ok=True)
     database_path = os.path.join(os.path.expanduser(config["output_dir"]), "database.db")
+    if os.path.exists(database_path):
+        os.remove(database_path)
     image_path = os.path.join(os.path.expanduser(config["dataset_path"]), "images")
     mask_path = os.path.join(os.path.expanduser(config["dataset_path"]), "masks")
     list_path = os.path.join(os.path.expanduser(config["dataset_path"]), "lists")
@@ -365,6 +367,7 @@ def PT_reconstruction(config):
         # print("camara: ", contador_camara-1)
         #input("wait")
     ###
+    #llamar funcion de generar archivo legible de poses de imagenes del modelo
 
 
     num_iterations = config["PT_cycle"]
@@ -392,6 +395,29 @@ def PT_reconstruction(config):
         print(f"Error: {e}")
         print("Converter failed.")
     ###
+
+
+    # Extract final poses
+    SMReader_path = os.path.expanduser("/working/main_folder/SparseModelReader.py")
+    output_poses = os.path.expanduser(os.path.join(input_path, "final_model"))
+    # print(SMReader_path)
+    # print(output_poses)
+    # print(input_path)
+    # input("wait")
+    command = [
+        "python3", SMReader_path,
+        "--input_model", input_path,
+        "--output_model", output_poses,
+        "--input_format", ".bin"
+    ]
+
+    try:
+        # Ejecutar el comando
+        subprocess.run(command, check=True)
+        print("SparseModelReader completed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        print("SparseModelReader failed.")
 
 
 
