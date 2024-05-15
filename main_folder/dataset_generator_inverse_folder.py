@@ -112,12 +112,13 @@ class RosBagSerializer(object):
 
         # self.imu_gps_output_dir = os.path.join(os.path.expanduser('/working'), 'colmap_ws')
         # self.imu_gps_output_dir = os.path.expanduser(os.path.join(self.output_dir, "dataset_ws/lists"))
-        self.imu_gps_output_dir = os.path.expanduser(os.path.join(self.output_dir, "lists"))
-        if os.path.exists(self.imu_gps_output_dir):
-            shutil.rmtree(self.imu_gps_output_dir)
-        os.makedirs(self.imu_gps_output_dir, exist_ok=True)
+        # self.imu_gps_output_dir = os.path.expanduser(os.path.join(self.output_dir, "lists"))
+        self.imu_gps_output_dir = os.path.expanduser(self.output_dir)
+        # if os.path.exists(self.imu_gps_output_dir):
+        #     shutil.rmtree(self.imu_gps_output_dir)
+        # os.makedirs(self.imu_gps_output_dir, exist_ok=True)
 
-        self.output_dir = os.path.join(os.path.expanduser(self.output_dir), 'images')
+        #self.output_dir = os.path.join(os.path.expanduser(self.output_dir), 'images')
         # self.output_dir = os.path.join(os.path.join(os.path.expanduser(self.output_dir), 'dataset_ws'), 'images')
         os.makedirs(self.output_dir, exist_ok=True)
 
@@ -457,11 +458,13 @@ class RosBagSerializer(object):
                 # else:
                 #     folder_name = "unknown"
                 
-                if not os.path.exists(os.path.join(self.output_dir, folder_name)):
-                    os.makedirs(os.path.join(self.output_dir, folder_name))
+                # if not os.path.exists(os.path.join(os.path.join(self.output_dir, folder_name), "images")):
+                #     os.makedirs(os.path.join(self.output_dir, folder_name))
+                os.makedirs(os.path.join(os.path.join(self.output_dir, folder_name), "images"), exist_ok=True)
 
                 image_filename = f"{folder_name}_image_{self.i+1:04d}.jpg"
-                image_path = os.path.join(self.output_dir, folder_name, image_filename)
+                image_path = os.path.join(self.output_dir, folder_name, "images", image_filename)
+                #os.makedirs(self.output_dir, exist_ok=True)
                 if not self.is_gps:
                     cv2.imwrite(image_path, img_data)
                     exif_dict = piexif.load(image_path)
@@ -504,12 +507,12 @@ class RosBagSerializer(object):
 
                 #print(exif_dict)
                 if gps_data:
-                        gps_file_path = os.path.join(self.imu_gps_output_dir, self.flag_camera)
-                        image_list_path = os.path.join(self.imu_gps_output_dir, self.flag_camera)
+                        gps_file_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists")
+                        image_list_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists")
                         os.makedirs(gps_file_path, exist_ok=True)
                         os.makedirs(image_list_path, exist_ok=True)
-                        gps_file_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "gps_data.txt")
-                        image_list_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "image_list.txt")
+                        gps_file_path = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "gps_data.txt")
+                        image_list_path = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "image_list.txt")
                         with open(gps_file_path, "a") as gps_file:
                             gps_info = f"{image_filename} {gps_data['latitude']} {gps_data['longitude']} {gps_data['altitude']}\n"
                             gps_file.write(gps_info)
@@ -610,11 +613,12 @@ class RosBagSerializer(object):
                     # aunque realmente provienen de coordenadas cartesinas con "map" como referencia
                     # Ejm: LAT=78.753 (metros desde el 0,0 del map del rosbag), LON=103.704, ALT=1500.000
                     #tf_file_path = os.path.join(self.imu_gps_output_dir, "tf_data.txt")
-                    tf_file_path = os.path.join(self.imu_gps_output_dir, self.flag_camera)
+                    #gps_file_path = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "gps_data.txt")
+                    tf_file_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists")
                     os.makedirs(tf_file_path, exist_ok=True)
-                    tf_file_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "images.txt")
-                    image_list_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "image_list.txt")
-                    tf_data_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "tf_data.txt")
+                    tf_file_path = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "images.txt")
+                    image_list_path = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "image_list.txt")
+                    tf_data_path = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "tf_data.txt")
                     if self.prev_image_filename != image_filename:
                         with open(tf_file_path, "a") as tf_file:
                             orientation_str = ' '.join(map(str, q_inverse))
@@ -1206,7 +1210,7 @@ class RosBagSerializer(object):
             
             if sync_pose == "GPS":
                 # Crear empty model para point triangulator
-                cameras_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "cameras.txt")
+                cameras_path = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "cameras.txt")
                 height = camera_info.get("intrinsics").get("height")
                 width = camera_info.get("intrinsics").get("width")
                 foco = camera_info.get("intrinsics").get("k")[0]
@@ -1216,8 +1220,8 @@ class RosBagSerializer(object):
 
             if sync_pose == "tf":
                 # Crear empty model para point triangulator
-                cameras_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "cameras.txt")
-                points_path = os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "points3D.txt")
+                cameras_path = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "cameras.txt")
+                points_path = os.path.join(os.path.join(os.path.join(self.imu_gps_output_dir, self.flag_camera), "lists"), "points3D.txt")
                 height = camera_info.get("intrinsics").get("height")
                 width = camera_info.get("intrinsics").get("width")
                 foco = camera_info.get("intrinsics").get("k")[0]
@@ -1240,14 +1244,16 @@ def create_masks(output):
     #self.output_base
     # input_base_folder = '/working/dataset_ws/images'
     # output_base_folder = '/working/dataset_ws/masks'
-    input_base_folder = os.path.join(output, "images")
-    output_base_folder = os.path.join(output, "masks")
+    # input_base_folder = os.path.join(output, "images")
+    # output_base_folder = os.path.join(output, "masks")
+    input_base_folder = output
+    output_base_folder = output
 
     # Iterar sobre las carpetas dentro del directorio base de entrada
     for folder_name in os.listdir(input_base_folder):
         # Obtener la ruta completa de la carpeta de entrada y salida para esta iteración
-        input_folder = os.path.join(input_base_folder, folder_name)
-        output_folder = os.path.join(output_base_folder, folder_name)
+        input_folder = os.path.join(os.path.join(input_base_folder, folder_name), "images")
+        output_folder = os.path.join(os.path.join(output_base_folder, folder_name), "masks")
 
         # Crear la carpeta de salida si no existe
         if not os.path.exists(output_folder):
