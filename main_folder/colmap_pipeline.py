@@ -308,7 +308,7 @@ def PT_reconstruction(config):
         print(f"Error: {e}")
         print("Matcher failed.")
     
-    # SfM_multiple_models = int(bool(config["SfM_multiple_models"]))
+    SfM_multiple_models = int(bool(config["SfM_multiple_models"]))
     if is_gps:
         # --input_path arg
         # --output_path arg
@@ -332,7 +332,7 @@ def PT_reconstruction(config):
         "--image_path", image_path,
         "--output_path", input_path,
         "--image_list_path", image_list_path_complete,
-        "--Mapper.multiple_models", str(0)
+        "--Mapper.multiple_models", str(SfM_multiple_models)
         ]
         # print(command)
         # input("wait")
@@ -424,46 +424,71 @@ def PT_reconstruction(config):
             run_colmap_bundle_adjuster(input_path, output_path)
             print("-" * 50)
 
-    # convertir el modelo a .PLY
-    #colmap model_converter --input_path sparse/0 --output_path sparse/0/sparseModel.ply --output_type PLY
-    output_ply = os.path.join(output_path, "sparseModelPT.ply")
-    command = [
-        "colmap", "model_converter",  
-        "--input_path", input_path,
-        "--output_path", output_ply,
-        "--output_type", "PLY"
-    ]
-    try:
-        # Run the command
-        subprocess.run(command, check=True)
-        print("Converter completed successfully.")
-    except subprocess.CalledProcessError as e:
-        print(f"Error: {e}")
-        print("Converter failed.")
-    ###
+        # Escalar y alinear modelo
+        # colmap model_aligner -
+        # -input_path /working/colmap_ws/2right_tf_time_distance/SfM/sparse/
+        # --output_path /working/colmap_ws/2right_tf_time_distance/SfM/sparse/georreferenced/ 
+        # --database_path /working/colmap_ws/2right_tf_time_distance/SfM/database.db 
+        # --ref_is_gps 0 --alignment_type custom 
+        # --alignment_max_error 0.1
+        
+        command = [
+            "colmap", "model_aligner",  
+            "--input_path", input_path,
+            "--output_path", input_path,
+            "--database_path", database_path,
+            "--ref_is_gps", str(0),
+            "--alignment_max_error", str(0.1)
+
+        ]
+        try:
+            # Run the command
+            subprocess.run(command, check=True)
+            print("Aligner completed successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"Error: {e}")
+            print("Aligner failed.")
+
+        # convertir el modelo a .PLY
+        #colmap model_converter --input_path sparse/0 --output_path sparse/0/sparseModel.ply --output_type PLY
+        output_ply = os.path.join(output_path, "sparseModelPT.ply")
+        command = [
+            "colmap", "model_converter",  
+            "--input_path", input_path,
+            "--output_path", output_ply,
+            "--output_type", "PLY"
+        ]
+        try:
+            # Run the command
+            subprocess.run(command, check=True)
+            print("Converter completed successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"Error: {e}")
+            print("Converter failed.")
+        ###
 
 
-    # Extract final poses
-    SMReader_path = os.path.expanduser("/working/main_folder/SparseModelReader.py")
-    output_poses = os.path.expanduser(os.path.join(input_path, "final_model"))
-    # print(SMReader_path)
-    # print(output_poses)
-    # print(input_path)
-    # input("wait")
-    command = [
-        "python3", SMReader_path,
-        "--input_model", input_path,
-        "--output_model", output_poses,
-        "--input_format", ".bin"
-    ]
+        # Extract final poses
+        SMReader_path = os.path.expanduser("/working/main_folder/SparseModelReader.py")
+        output_poses = os.path.expanduser(os.path.join(input_path, "final_model"))
+        # print(SMReader_path)
+        # print(output_poses)
+        # print(input_path)
+        # input("wait")
+        command = [
+            "python3", SMReader_path,
+            "--input_model", input_path,
+            "--output_model", output_poses,
+            "--input_format", ".bin"
+        ]
 
-    try:
-        # Ejecutar el comando
-        subprocess.run(command, check=True)
-        print("SparseModelReader completed successfully.")
-    except subprocess.CalledProcessError as e:
-        print(f"Error: {e}")
-        print("SparseModelReader failed.")
+        try:
+            # Ejecutar el comando
+            subprocess.run(command, check=True)
+            print("SparseModelReader completed successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"Error: {e}")
+            print("SparseModelReader failed.")
 
 
 
