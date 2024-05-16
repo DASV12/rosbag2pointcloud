@@ -199,7 +199,14 @@ def PT_reconstruction(config):
     single_camera_per_folder = str(1) 
     input_path = os.path.join(os.path.expanduser(config["output_dir"]), "sparse")
     output_path = input_path
+    use_gpu = int(bool(config["use_gpu"]))
+    matcher = config["matcher"]
+    pose_type = config["pose_type"]
+    is_gps = 1
+    if pose_type == "tf":
+        is_gps = 0
 
+    # extract features for each camera
     for camera in config["cameras"]:
         mask_flag = False
         ##
@@ -244,9 +251,10 @@ def PT_reconstruction(config):
         "--database_path", database_path,
         "--image_path", image_path,
         "--ImageReader.camera_model", camera_model,
-        "--ImageReader.single_camera_per_folder", single_camera_per_folder,
+        "--ImageReader.single_camera", single_camera_per_folder,
         "--image_list_path", image_list_path,
-        "--ImageReader.camera_params", camera_params
+        "--ImageReader.camera_params", camera_params,
+        "--SiftExtraction.use_gpu", str(use_gpu)
         ]
         if mask_flag:
             # Agregar un nuevo comando
@@ -266,8 +274,8 @@ def PT_reconstruction(config):
             print("Feature extractor failed.")
 
     #colmap sequential_matcher --database_path dataset.db (--SiftExtraction.use_gpu 0)
-    use_gpu = int(bool(config["use_gpu"]))
-    matcher = config["matcher"]
+    # use_gpu = int(bool(config["use_gpu"]))
+    # matcher = config["matcher"]
     command = [
         "colmap",  # Comando base
         "spatial_matcher",  # Valor predeterminado
@@ -283,7 +291,7 @@ def PT_reconstruction(config):
     elif matcher == "spatial":
         command[1] = "spatial_matcher"
         new_command = [
-                "--SpatialMatching.is_gps", str(0)
+                "--SpatialMatching.is_gps", str(is_gps)
             ]
         command.extend(new_command)
     else:
@@ -300,83 +308,121 @@ def PT_reconstruction(config):
         print(f"Error: {e}")
         print("Matcher failed.")
     
-    # generar empty model en /sparse con las camaras requeridas y la image_list.txt de cada camara
-    contador_camara = 1
-    contador = 1
-    output_file_path = os.path.expanduser(os.path.join(config["output_dir"], "sparse"))
-    if os.path.exists(output_file_path):
-        shutil.rmtree(output_file_path)
-    os.makedirs(output_file_path, exist_ok=True)
-    cameras_output_file_path = os.path.join(output_file_path, "cameras.txt")
-    points3D_output_file_path = os.path.join(output_file_path, "points3D.txt")
-    output_file_path = os.path.join(output_file_path, "images.txt")
-    with open(points3D_output_file_path, 'w'):
-        pass
-    #input("wait")
-    for camera in config["cameras"]:
-        list_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], "lists")), camera)
-        cameras_file_path = os.path.join(list_path, "cameras.txt")
-        image_list_file_path = os.path.join(list_path, "image_list.txt")
-        images_file_path = os.path.join(list_path, "images.txt")
-    
-        #with open(cameras_file_path, 'r') as cameras_file:
-        with open(cameras_file_path, 'r') as origen, open(cameras_output_file_path, 'a') as destino:
-            # Lee la primera línea del archivo de origen
-            primera_linea = origen.readline()
-            elements = primera_linea.split()
-            elements[0] = str(contador_camara)
-            output_line = ' '.join(elements)
-            # Escribe la primera línea en el archivo de destino
-            destino.write(output_line + "\n")
+    # SfM_multiple_models = int(bool(config["SfM_multiple_models"]))
+    if is_gps:
+        # --input_path arg
+        # --output_path arg
+        # --image_list_path arg
+        # --Mapper.multiple_models
 
-
-        # Abre los archivos de entrada y salida
-        with open(image_list_file_path, 'r') as image_list_file, \
-                open(images_file_path, 'r') as images_file, \
-                open(output_file_path, 'a') as output_file:
-
-            # Resto del código permanece igual
-            for image_list_line in image_list_file:
-                image_filename = image_list_line.strip()
-                # print(image_filename)
-                # input("wait")
-                images_file.seek(0)
-                found_match = False
-                for images_line in images_file:
-                    elements = images_line.split()
-                    if elements:
-                        images_filename = elements[-1]
-                        # print(images_filename)
-                        # input("wait")
-                        if image_filename == images_filename:
-                            # Reemplazar el primer elemento por el contador
-                            elements[0] = str(contador)
-                            elements[8] = str(contador_camara)
-                            # print(elements)
-                            # input("wait")
-                            output_line = ' '.join(elements)
-                            # print(output_line)
-                            # input("wait")
-                            output_file.write(output_line + "\n\n")
-                            contador += 1
-                            found_match = True
-                            break
-                if not found_match:
-                    print(f"No se encontró una coincidencia para el archivo: {image_filename}" )
-        contador_camara += 1
-        # print("camara: ", contador_camara-1)
+        # generar lista unificada de seleccion de ambas camaras
+        output_file_path = os.path.expanduser(os.path.join(config["output_dir"], "sparse"))
+        if os.path.exists(output_file_path):
+            shutil.rmtree(output_file_path)
+        os.makedirs(output_file_path, exist_ok=True)
+        image_list_path_complete = os.path.join(output_file_path, "images_list.txt")
+        for camera in config["cameras"]:
+            list_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], "lists")), camera)
+            image_list_file_path = os.path.join(list_path, "image_list.txt")
+            with open(image_list_file_path, 'rb') as origen, open(image_list_path_complete, 'ab') as destino:
+                shutil.copyfileobj(origen, destino)
+        command = [
+        "colmap", "mapper",
+        "--database_path", database_path,
+        "--image_path", image_path,
+        "--output_path", input_path,
+        "--image_list_path", image_list_path_complete,
+        "--Mapper.multiple_models", str(0)
+        ]
+        # print(command)
+        # input("wait")
+        try:
+            # Run the command
+            subprocess.run(command, check=True)
+            print("Mapper completed successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"Error: {e}")
+            print("Mapper failed.")
+    else:
+        # generar empty model en /sparse con las camaras requeridas y la image_list.txt de cada camara
+        # print(" PT reconstruction")
+        # input("wait")
+        contador_camara = 1
+        contador = 1
+        output_file_path = os.path.expanduser(os.path.join(config["output_dir"], "sparse"))
+        if os.path.exists(output_file_path):
+            shutil.rmtree(output_file_path)
+        os.makedirs(output_file_path, exist_ok=True)
+        cameras_output_file_path = os.path.join(output_file_path, "cameras.txt")
+        points3D_output_file_path = os.path.join(output_file_path, "points3D.txt")
+        output_file_path = os.path.join(output_file_path, "images.txt")
+        with open(points3D_output_file_path, 'w'):
+            pass
         #input("wait")
-    ###
-    #llamar funcion de generar archivo legible de poses de imagenes del modelo
+        for camera in config["cameras"]:
+            list_path = os.path.join(os.path.expanduser(os.path.join(config["dataset_path"], "lists")), camera)
+            cameras_file_path = os.path.join(list_path, "cameras.txt")
+            image_list_file_path = os.path.join(list_path, "image_list.txt")
+            images_file_path = os.path.join(list_path, "images.txt")
+        
+            #with open(cameras_file_path, 'r') as cameras_file:
+            with open(cameras_file_path, 'r') as origen, open(cameras_output_file_path, 'a') as destino:
+                # Lee la primera línea del archivo de origen
+                primera_linea = origen.readline()
+                elements = primera_linea.split()
+                elements[0] = str(contador_camara)
+                output_line = ' '.join(elements)
+                # Escribe la primera línea en el archivo de destino
+                destino.write(output_line + "\n")
 
 
-    num_iterations = config["PT_cycle"]
-    # ejecutar los ciclos de PT y BA sobre la misma carpeta /sparse
-    for i in range(num_iterations):
-        print(f"Iteration {i+1}:")
-        run_colmap_point_triangulator(database_path, image_path, input_path, output_path)
-        run_colmap_bundle_adjuster(input_path, output_path)
-        print("-" * 50)
+            # Abre los archivos de entrada y salida
+            with open(image_list_file_path, 'r') as image_list_file, \
+                    open(images_file_path, 'r') as images_file, \
+                    open(output_file_path, 'a') as output_file:
+
+                # Resto del código permanece igual
+                for image_list_line in image_list_file:
+                    image_filename = image_list_line.strip()
+                    # print(image_filename)
+                    # input("wait")
+                    images_file.seek(0)
+                    found_match = False
+                    for images_line in images_file:
+                        elements = images_line.split()
+                        if elements:
+                            images_filename = elements[-1]
+                            # print(images_filename)
+                            # input("wait")
+                            if image_filename == images_filename:
+                                # Reemplazar el primer elemento por el contador
+                                elements[0] = str(contador)
+                                elements[8] = str(contador_camara)
+                                # print(elements)
+                                # input("wait")
+                                output_line = ' '.join(elements)
+                                # print(output_line)
+                                # input("wait")
+                                output_file.write(output_line + "\n\n")
+                                contador += 1
+                                found_match = True
+                                break
+                    if not found_match:
+                        print(f"No se encontró una coincidencia para el archivo: {image_filename}" )
+            contador_camara += 1
+            # print("camara: ", contador_camara-1)
+            #input("wait")
+        ###
+        #llamar funcion de generar archivo legible de poses de imagenes del modelo
+
+
+        num_iterations = config["PT_cycle"]
+        # ejecutar los ciclos de PT y BA sobre la misma carpeta /sparse
+        for i in range(num_iterations):
+            print(f"Iteration {i+1}:")
+            run_colmap_point_triangulator(database_path, image_path, input_path, output_path)
+            run_colmap_bundle_adjuster(input_path, output_path)
+            print("-" * 50)
 
     # convertir el modelo a .PLY
     #colmap model_converter --input_path sparse/0 --output_path sparse/0/sparseModel.ply --output_type PLY
@@ -420,12 +466,6 @@ def PT_reconstruction(config):
         print("SparseModelReader failed.")
 
 
-
-
-
-
-def SfM_reconstruction(config):
-    print("SfM reconstruction")
 
 def dense_reconstruction(config):
     print("Dense reconstruction")
@@ -527,7 +567,6 @@ def main():
     #archivo_configuracion = input("Please enter the path to the YAML file: ")
     archivo_configuracion = "main_folder/config_colmap.yaml"
     config = leer_configuracion(archivo_configuracion)
-    pose_type = config["pose_type"]
     reconstruction = config["reconstruction"]
     sparse_flag = False
     dense_flag = False
@@ -540,10 +579,7 @@ def main():
         dense_flag = True
 
     if sparse_flag:
-        if pose_type == "tf":
-            PT_reconstruction(config)
-        elif pose_type == "GPS":
-            SfM_reconstruction(config)
+        PT_reconstruction(config)
 
     if dense_flag:
         dense_reconstruction(config)
