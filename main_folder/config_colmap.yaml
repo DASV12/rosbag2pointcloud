@@ -5,6 +5,6 @@ cameras: [camera_right0, camera_right1] # cameras to reconstruct under dataset_p
 matcher: "spatial" # "spatial" "exhaustive", "sequential". Sequential only for 1 camera because it would match last camera1 image with first camera2 image
 use_gpu: True
 PT_cycle: 10 # point refinement cycles for known pose reconstructions
-reconstruction: "sparse" # "sparse", "dense", "both"
+reconstruction: "dense" # "sparse", "dense", "both"
 segmentation_flag: 0
 GPS_scalation_type: = "ENU"

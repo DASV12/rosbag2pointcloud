@@ -426,6 +426,91 @@ def PT_reconstruction(config):
 
 def SfM_reconstruction(config):
     print("SfM reconstruction")
+
+def dense_reconstruction(config):
+    print("Dense reconstruction")
+    image_path = os.path.join(os.path.expanduser(config["dataset_path"]), "images")
+    input_path = os.path.expanduser(os.path.join(config["output_dir"], "sparse"))
+    output_path = os.path.expanduser(os.path.join(config["output_dir"], "dense"))
+    if os.path.exists(output_path):
+        shutil.rmtree(output_path)
+    os.makedirs(output_path, exist_ok=True)
+    dense_file = os.path.join(output_path, "fused.ply")
+    mesh_poisson_file = os.path.join(output_path, "meshed-poisson.ply")
+    mesh_delaunay_file = os.path.join(output_path, "meshed-delaunay.ply")
+    # print(image_path)
+    # print(input_path)
+    # print(output_path)
+    # print(dense_file)
+    # print(mesh_poisson_file)
+    # print(mesh_delaunay_file)
+    # input("wait")
+    command = [
+        "colmap", "image_undistorter",
+        "--image_path", image_path,
+        "--input_path", input_path,
+        "--output_path", output_path,
+        "--output_type", "COLMAP"
+    ]
+    try:
+        # Run the command
+        subprocess.run(command, check=True)
+        print("Undistorter completed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        print("Undistorter failed.")
+    
+    command = [
+        "colmap", "patch_match_stereo",
+        "--workspace_path", output_path
+    ]
+    try:
+        # Run the command
+        subprocess.run(command, check=True)
+        print("Patch match stereo completed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        print("Patch match stereo failed.")
+
+    command = [
+        "colmap", "stereo_fusion",
+        "--workspace_path", output_path,
+        "--output_path", dense_file
+    ]
+    try:
+        # Run the command
+        subprocess.run(command, check=True)
+        print("Stereo fusion completed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        print("Stereo fusion failed.")
+
+    command = [
+        "colmap", "poisson_mesher",
+        "--input_path", dense_file,
+        "--output_path", mesh_poisson_file
+    ]
+    try:
+        # Run the command
+        subprocess.run(command, check=True)
+        print("Poisson mesher completed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        print("Poisson mesher failed.")
+
+    command = [
+        "colmap", "delaunay_mesher",
+        "--input_path", output_path,
+        "--output_path", mesh_delaunay_file
+    ]
+    try:
+        # Run the command
+        subprocess.run(command, check=True)
+        print("Delaunay mesher completed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        print("Delaunay mesher failed.")
+
     
 # dataset_path: "/working/dataset_ws/rightGPS_right_GPS_timefilters"
 # output_dir: "working/colmap_sw/poblado2camarasRight" #is taken as output dir for sparse reconstruction and input dir for dense reconstruction
@@ -443,11 +528,26 @@ def main():
     archivo_configuracion = "main_folder/config_colmap.yaml"
     config = leer_configuracion(archivo_configuracion)
     pose_type = config["pose_type"]
-    if pose_type == "tf":
-        PT_reconstruction(config)
-    elif pose_type == "GPS":
-        SfM_reconstruction(config)
+    reconstruction = config["reconstruction"]
+    sparse_flag = False
+    dense_flag = False
+    if reconstruction == "sparse":
+        sparse_flag = True
+    if reconstruction == "dense":
+        dense_flag = True
+    if reconstruction == "both":
+        sparse_flag = True
+        dense_flag = True
 
+    if sparse_flag:
+        if pose_type == "tf":
+            PT_reconstruction(config)
+        elif pose_type == "GPS":
+            SfM_reconstruction(config)
+
+    if dense_flag:
+        dense_reconstruction(config)
+    
 if __name__ == "__main__":
     main()
 
