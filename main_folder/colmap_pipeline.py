@@ -388,7 +388,7 @@ def PT_reconstruction(config):
 
             # Extract final poses
             SMReader_path = os.path.expanduser("/working/main_folder/SparseModelReader.py")
-            output_poses = os.path.expanduser(os.path.join(input_path, "final_model"))
+            output_poses = os.path.expanduser(os.path.join(subfolder_path, "final_model"))
             # print(SMReader_path)
             # print(output_poses)
             # print(input_path)
