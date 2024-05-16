@@ -147,3 +147,7 @@ Configure dataset_config.yaml (the file is the file is self-descriptive) and the
 sync_rosbag_tf_seek_read_all_GPS_fused.py
 python3 main_folder/colmap_pipeline.py
 
+
+## Contact Me
+https://www.linkedin.com/in/dasv1298/
+
