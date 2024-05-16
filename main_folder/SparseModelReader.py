@@ -589,7 +589,8 @@ def main():
     )
 
     # print("num_cameras:", len(cameras))
-    model_path = os.path.join(os.path.expanduser(args.input_model),"final_model_poses")
+    #model_path = os.path.join(os.path.expanduser(args.input_model),"final_model_poses")
+    model_path = args.output_model
     if os.path.exists(model_path):
             shutil.rmtree(model_path)
     os.makedirs(model_path, exist_ok=True)

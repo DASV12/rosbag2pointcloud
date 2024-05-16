@@ -343,6 +343,72 @@ def PT_reconstruction(config):
         except subprocess.CalledProcessError as e:
             print(f"Error: {e}")
             print("Mapper failed.")
+
+        ###
+        subfolders = [f.path for f in os.scandir(input_path) if f.is_dir()]
+        GPS_scalation_type = config["GPS_scalation_type"]
+        for subfolder in subfolders:
+        # # Escalar y alinear modelo
+            subfolder_path = os.path.expanduser(os.path.join(input_path, subfolder))
+            command = [
+                "colmap", "model_aligner",  
+                "--input_path", subfolder_path,
+                "--output_path", subfolder_path,
+                "--database_path", database_path,
+                "--ref_is_gps", str(1),
+                "--alignment_max_error", str(0.1),
+                "--alignment_type", GPS_scalation_type
+            ]
+            try:
+                # Run the command
+                subprocess.run(command, check=True)
+                print("Aligner completed successfully.")
+            except subprocess.CalledProcessError as e:
+                print(f"Error: {e}")
+                print("Aligner failed.")
+
+            # convertir el modelo a .PLY
+            #colmap model_converter --input_path sparse/0 --output_path sparse/0/sparseModel.ply --output_type PLY
+            output_ply = os.path.join(subfolder_path, "sparseModelPT.ply")
+            command = [
+                "colmap", "model_converter",  
+                "--input_path", subfolder_path,
+                "--output_path", output_ply,
+                "--output_type", "PLY"
+            ]
+            try:
+                # Run the command
+                subprocess.run(command, check=True)
+                print("Converter completed successfully.")
+            except subprocess.CalledProcessError as e:
+                print(f"Error: {e}")
+                print("Converter failed.")
+            ###
+
+
+            # Extract final poses
+            SMReader_path = os.path.expanduser("/working/main_folder/SparseModelReader.py")
+            output_poses = os.path.expanduser(os.path.join(input_path, "final_model"))
+            # print(SMReader_path)
+            # print(output_poses)
+            # print(input_path)
+            # input("wait")
+            command = [
+                "python3", SMReader_path,
+                "--input_model", subfolder_path,
+                "--output_model", output_poses,
+                "--input_format", ".bin"
+            ]
+
+            try:
+                # Ejecutar el comando
+                subprocess.run(command, check=True)
+                print("SparseModelReader completed successfully.")
+            except subprocess.CalledProcessError as e:
+                print(f"Error: {e}")
+                print("SparseModelReader failed.")
+
+        ### 
     else:
         # generar empty model en /sparse con las camaras requeridas y la image_list.txt de cada camara
         # print(" PT reconstruction")
@@ -424,21 +490,16 @@ def PT_reconstruction(config):
             run_colmap_bundle_adjuster(input_path, output_path)
             print("-" * 50)
 
-        # Escalar y alinear modelo
-        # colmap model_aligner -
-        # -input_path /working/colmap_ws/2right_tf_time_distance/SfM/sparse/
-        # --output_path /working/colmap_ws/2right_tf_time_distance/SfM/sparse/georreferenced/ 
-        # --database_path /working/colmap_ws/2right_tf_time_distance/SfM/database.db 
-        # --ref_is_gps 0 --alignment_type custom 
-        # --alignment_max_error 0.1
-        
+        # Escalar y alinear modelo        
         command = [
             "colmap", "model_aligner",  
             "--input_path", input_path,
             "--output_path", input_path,
             "--database_path", database_path,
+            "--merge_image_and_ref_origins", str(1),
             "--ref_is_gps", str(0),
-            "--alignment_max_error", str(0.1)
+            "--alignment_max_error", str(0.001),
+            "--alignment_type", "custom"
 
         ]
         try:
