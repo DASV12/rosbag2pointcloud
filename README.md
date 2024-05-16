@@ -144,7 +144,8 @@ sudo apt install libqt5gui5
 
 ### Dataset generator
 Configure dataset_config.yaml (the file is the file is self-descriptive) and then run:
-sync_rosbag_tf_seek_read_all_GPS_fused.py
+python3 main_folder/dataset_generator.py 
+
 python3 main_folder/colmap_pipeline.py
 
 
