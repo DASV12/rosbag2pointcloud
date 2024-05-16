@@ -28,3 +28,4 @@ mask_rcnn_coco.h5
 /dataset_ws/*
 /sfm/*
 /dataset_ws_test/*
+/models/*
