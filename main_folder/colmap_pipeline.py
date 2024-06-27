@@ -359,13 +359,13 @@ def PT_reconstruction(config):
                 "--alignment_max_error", str(0.1),
                 "--alignment_type", GPS_scalation_type
             ]
-            try:
-                # Run the command
-                subprocess.run(command, check=True)
-                print("Aligner completed successfully.")
-            except subprocess.CalledProcessError as e:
-                print(f"Error: {e}")
-                print("Aligner failed.")
+            # try:
+            #     # Run the command
+            #     subprocess.run(command, check=True)
+            #     print("Aligner completed successfully.")
+            # except subprocess.CalledProcessError as e:
+            #     print(f"Error: {e}")
+            #     print("Aligner failed.")
 
             # convertir el modelo a .PLY
             #colmap model_converter --input_path sparse/0 --output_path sparse/0/sparseModel.ply --output_type PLY
