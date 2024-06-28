@@ -7,7 +7,7 @@ ARG NVIDIA_CUDA_VERSION=12.3.1
 FROM nvidia/cuda:${NVIDIA_CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION} as builder
 
 ARG COLMAP_GIT_COMMIT=main
-ARG CUDA_ARCHITECTURES=86
+ARG CUDA_ARCHITECTURES=89
 ENV QT_XCB_GL_INTEGRATION=xcb_egl
 
 # Prevent stop building ubuntu at time zone selection.

@@ -1,0 +1,10 @@
+dataset_path: "/working/colmap_ws/col_right_complete_tf"
+output_dir: "/working/colmap_ws/col_right_complete_tf/SfM" #is taken as output dir for sparse reconstruction and input dir for dense reconstruction
+pose_type: "tf" # "tf": known pose reconstruction, "GPS": SfM pose estimator reconstruction
+cameras: [camera_right] # cameras to reconstruct under dataset_path
+matcher: "spatial" # "spatial" "exhaustive", "sequential". Sequential only for 1 camera because it would match last camera1 image with first camera2 image
+SfM_multiple_models: True
+use_gpu: True
+PT_cycle: 10 # point refinement cycles for known pose reconstructions
+reconstruction: "sparse" # "sparse", "dense", "both"
+GPS_scalation_type: "custom" # plane, ecef, enu, enu-plane,enu-plane-unscaled, custom
