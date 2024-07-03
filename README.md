@@ -6,16 +6,24 @@ Pipeline to reconstruct a 3D structure of a scene based on a set of images from 
 Structure from Motion (SfM) is a technique used to reconstruct the 3D structure of a scene from a set of 2D images captured from different viewpoints. COLMAP is a SfM pipeline with command-line interface and features for reconstruction of images collections.
 On the other hand, ROS2 is a very popular robot operating system with features like ros2bags to record data for post processing.
 
-This project consists of 2 stages:
-First stage is an Image processing pipeline where a ros2 bag is processed to extract and structure the needed information for the reconstruction.
+This project consists of 2 stages:\
+First stage is an Image processing pipeline where a ros2 bag is processed to extract and structure the needed information for the reconstruction.\
 The second stage is a COLMAP pipeline that takes as input the processed data of the first stage and produces a sparse point cloud with estimated camera poses and optional a dense point cloud of the scene.
 
 ## Image processing pipeline
 #### Rosbag expected topics and type:
-- **Cameras images:** `sensor_msgs.msg.Image` or `sensor_msgs.msg.CompressedImage`
-- **Cameras info:** `sensor_msgs.msg.CameraInfo`
-- **GPS info:** `sensor_msgs.msg.NavSatFix`
-- **Transform info:** `geometry_msgs.msg.TransformStamped`
+- **Cameras images:** 
+    - **msg type:** `sensor_msgs.msg.Image` or `sensor_msgs.msg.CompressedImage`.
+    - **Topic name:** Custom name.
+- **Cameras info:**
+    - **msg type:** `sensor_msgs.msg.CameraInfo`.
+    - **Topic name:** Custom name.
+- **GPS info:**
+    - **msg type:** `sensor_msgs.msg.NavSatFix`.
+    - **Topic name:** `/fix`.
+- **Transform info:**
+    - **msg type:** `tf2_msgs.msg.TFMessage`.
+    - **Topic name:** `/tf/odom`, `/tf/base_link`, `/tf/inertial_link`.
 
 #### Masking
 Moving objects as pedestrians, cars, etc... lead to failures in the COLMAP pipeline. To mitigate their impact, COLMAP filters regions of the images based on masks, which are created using the Ultralitic's "yolov8x-seg" segmentation model that segments people, cars, motorcicles and trucks. *Make sure you have an internet connection the first time you use the repository to download the model.*
@@ -75,31 +83,90 @@ In this stage all images are undistorted and contains the next information in th
 - Size: height x width
 - Focal length (mm)
 - Rosbag time (s)
-- GPS data: Latitude, longitude & altitude or (x,y) in meters from `tf` map frame.
+- GPS data: Latitude, longitude & altitude or (x,y) in meters from `/tf` map frame.
 
 #### Usage Instructions
 To use this pipeline, first set the configuration file `config_dataset.yaml` specifying all the needed parameters and then run `dataset_generator.py`.
 
-#### Recording recomendations:
-
+#### Dataset recording recomendations:
+<details>
+<summary>Show the list of recomendations</summary>
+- Take the images in an illuminated environment.
+- The higher the resolution of the images, the more detailed the reconstruction will be.
+- Maintain about 10 meters from camera to objects.
+- Take images perpendicular to the object of interest, vanishing points are not good for reconstructions.
+- Avoid moving objects.
+- Images taken from a single camera must have sufficient visual overlap (>60%).
+- If recorded with multiple cameras, cameras must have sufficient visual overlap (>60%).
+- If possible, close the recording path cycle.
+- Rotations on the same axis are not desirable.
+- Maintain a constant robot speed.
+- Manage robot speed and recording frequency to ensure data (Images, tf & GPS) synchronisation and overlapping of images.
+- Single line recording path is not desirable for georeferencing.
+</details>
 
 ## COLMAP pipeline
-This pipeline was designed to automate the command line flow and deliver a reconstruction using the information from the last stage. COLMAP is a very extensive tool with many functionalities and parameters (https://colmap.github.io/) and this pipeline incorporates some of the main functionalities of COLMAP allowing multi-camera reconstructions from known and unknown camera poses, different matchers and model scalators.
+This pipeline was designed to automate the command line flow and deliver a reconstruction using the information from the last stage. [COLMAP](https://colmap.github.io/) is a very extensive tool with many functionalities and parameters. This pipeline incorporates some of its main functionalities, allowing multi-camera reconstructions from known and unknown camera poses, different matchers and model scalators.
+#### Usage Instructions
+To use this pipeline, first set the configuration file `config_colmap.yaml` specifying all the needed parameters and then run `colmap_pipeline.py`.
 
-To use this pipeline, first set the configuration file "config_colmap.yaml" specifying all the needed parameters and then run "colmap_pipeline.py ".
+#### Output folders
 
-As output, a new folder is added to the project, containing all the 3D models generated by COLMAP and files with pose data.
+```
+colmap_ws/
+├── project_name/
+│ ├── images/
+│ │ └── ...
+│ ├── masks/
+│ │ └── ...
+│ ├── lists/
+│ │ └── ...
+│ ├── SfM/
+│ │ ├── sparse/
+│ │ │ ├── sparseModel.ply
+│ │ │ ├── final_model_poses/
+│ │ │ │ ├── cameras.txt
+│ │ │ │ ├── images.txt
+│ │ │ │ ├── points3D.txt
+│ │ │ └── ...
+│ │ ├── dense/
+│ │ │ ├── denseModel.ply
+│ │ │ ├── meshed-delaunayModel.ply
+│ │ │ ├── meshed-poissonModel.ply
+│ │ │ └── ...
+│ │ ├── database.db
 
-Pipeline for known camera poses:
+```
 
-Pipeline for unknown camera poses:
+#### Pipeline for known camera poses (/tf):
+1. Feature extraction
+2. Feature matcher
+3. image_list.txt reading
+4. Point triangulation & bundle adjustment cycle
+5. Model scaling
+6. Sparse model (PLY generation)
+7. Cameras pose extraction
 
-(insert image with folder outputs)
+#### Pipeline for unknown camera poses (GPS):
+1. Feature extraction
+2. Feature matcher
+3. image_list.txt reading
+4. Mapper
+5. Model Geo-registration/scaling
+6. Sparse model (PLY generation)
+7. Cameras pose extraction
+
+#### Pipeline for dense pointclouyd generation
+1. Image undistorter
+2. Patch match stereo
+3. Stereo fusion
+4. Poisson mesher / Delaunay mesher
 
 
 
 ## Requirements
 - Docker:
+```
 sudo apt update
 sudo apt-get install ca-certificates curl gnupg
 sudo install -m 0755 -d /etc/apt/keyrings
@@ -112,11 +179,15 @@ echo \
 
 sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
 
 -# Make sure to have nvidia driver for GPU and check with
+```
 nvidia-smi
+```
 
 - Cuda toolkit:
+```
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
 sudo mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
 wget https://developer.download.nvidia.com/compute/cuda/12.4.1/local_installers/cuda-repo-ubuntu2204-12-4-local_12.4.1-550.54.15-1_amd64.deb
@@ -128,10 +199,11 @@ sudo apt-get -y install cuda-toolkit-12-4
 export PATH=/usr/local/cuda-12.4/bin${PATH:+:${PATH}}
 export LD_LIBRARY_PATH=/usr/local/cuda-12.4/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 -# verify: nvcc --version
-
+```
 
 - Nvidia-docker toolkit:
 NVIDIA GPU/CUDA and installed drivers.
+```
 curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
   && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
     sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
@@ -139,6 +211,7 @@ curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dear
 sudo apt-get update
 sudo apt-get install -y nvidia-container-toolkit
 sudo systemctl restart docker
+´´´
 
 ## Run project
 After clone the repository, run:
@@ -151,13 +224,15 @@ docker run --gpus all -w /working -v $1:/working -it colmap:cuda
 -# Replace with your working directory (path to cloned repository) as this:
 
 Ros2+Colmap CLI
+```
 docker run \
     --gpus all \
     -w /working \
     -v /home/user/Documents/.../SfM_CUDA:/working \
     -it colmap:cuda
-
+```
 Ros2+Enable Colmap GUI
+```
 docker run \
     -e QT_XCB_GL_INTEGRATION=xcb_egl \
     -e DISPLAY=$DISPLAY \
@@ -168,10 +243,11 @@ docker run \
     --privileged \
     -it colmap:cuda \
     # colmap gui
-
+```
 GUI Troubleshooting:
+```
 xhost +
-
+```
 ## Conclusions
 reconstructions: (Add results page with real dataset and simulated dataset)
 
