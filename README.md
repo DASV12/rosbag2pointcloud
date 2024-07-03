@@ -1,73 +1,51 @@
-																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																													# SfM
-The goal of this project is to generate a suitable dataset of images with the necessary information from a ROS2 rosbag and then run a command pipeline with the COLMAP tool to generate a point cloud of the scene. All this executed form a docker container.
+# SfM
+# (Title & Insert GIF)
+Pipeline to reconstruct a 3D structure of a scene based on a set of images from a ros2 bag.
 
-## Dataset Generation
-### Images
-Start specifying only the camera's topic to reconstruct at the bottom of the script and then run the script. The code will stract automatically intrinsics for each camera to undistort the images and syncronize them with their aproximated position taken from /tf.
-The output of this script is "images" folder with subfolders for each camera: 
-->"front" folder for topic: /camera/color/image_raw
-->"left" folder for topic:/video_mapping/left/image_raw
-->"right" folder for topic:/video_mapping/right/image_raw
-### Masks
-Moving objects lead to failures in the COLMAP pipeline. COLMAP integrates an option to filter areas of the images with masks. This masks are black & withe copies of the image where black pixels will not be readed.
-Currently this script takes images from a folder, masks possible moving objects (people, cars, trucks and motorcycles) and creates a new folder with masks. To be read by COLMAP, a "masks" folder should be created at the same level and with the same subfolders as "images" folder.
-### Future work
-Merge image and mask generation in 1 script and automate mask folder creation.
-Create image_path_file_"subset".txt files for further COLMAP processes. These files will contain a list of image names, with the folder divided into subsets of 100-150 images overlaped in 10 images.
+## Overview
+Structure from Motion (SfM) is a technique used to reconstruct the 3D structure of a scene from a set of 2D images captured from different viewpoints. COLMAP is a SfM pipeline with command-line interface and features for reconstruction of images collections.
+On the other hand, ROS2 is a very popular robot operating system with features like ros2bags to record data for post processing.
+
+This project consists of 2 stages:
+First stage is an Image processing pipeline where a ros2 bag is processed to extract and structure the needed information for the reconstruction.
+The second stage is a COLMAP pipeline that takes as input the processed data of the first stage and produces a sparse point cloud with estimated camera poses and optional a dense point cloud of the scene.
+
+## Image processing pipeline
+Rosbag expected topics and type:
+- Cameras images: sensor_msgs.msg.Image or sensor_msgs.msg.CompressedImage
+- Cameras info: sensor_msgs.msg.CameraInfo
+- GPS info: sensor_msgs.msg.NavSatFix
+- Transform info: geometry_msgs.msg.TransformStamped
+
+Moving objects as pedestrians, cars, etc... lead to failures in the COLMAP pipeline. To mitigate their impact, COLMAP filters regions of the images based on masks, which are created using the Ultralitic's "yolov8x-seg" segmentation model that segments people, cars, motorcicles and trucks.
+
+(insert comparisson mask vs filtered image)
+
+To use this pipeline, first set the configuration file "config_dataset.yaml" specifying all the needed parameters and then run "dataset_generator.py ".
+
+As output is obtained a folder with the undistorted images, masks and text files with pose information and lists needed for COLMAP pipeline.
+
+(insert image with folder output)
+
+Recording recomendations:
 
 ## COLMAP pipeline
-Reconstructing all images from all cameras at once will cause COLMAP to crash, first because images from different cameras will not have enough visual overlap, and second because a reconstruction from too many images can have large error drift and not give a detailed model or crash. Also, due to the structure of COLMAP, reconstruction by subsets is even faster than reconstructing all cameras at once.
-To deal with this, the next pipeline is proposed:
-1. Take only 1 camera folder at a time
-2. Run feature_extractor on all images in the folder and their respective masks
-3. Run sequential_matcher on all the images in the folder
-4. Run mapper on subsets of images defined by image_path_file_"subset".txt until run all subsets
-5. Run model_merger on all submodels generated in the last step
-6. Run point_triangulator and bundle_adjuster to correct alignment errors between models
-7. Run model_aligner to scale and align the model with the position of each image
-8. Run a point cloud densification process form the sparse model generated in the last step
-9. Run a mesh generation process from dense point clouf generated in last step
-10. Repeat the process for all the cameras
-All COLMAP CLI commands could be found at main_folder.
-### COLMAP CLI
-1. Crear carpetas, los archivos no mencionados acá se pueden dejar en otro directorio diferente.
-Por ahora solo camara derecha en folder "right_camera" crear:
-	list.txt -> archivo de texto con lista de las 100 primeras imagenes de la camara derecha
-	camera_images
-		images -> todas las imagenes de solo la camara derecha
-		masks -> todas las mascaras de solo la camara derecha
-	sparse -> carpeta donde se creará el sparse pointcloud
-	dense -> carpeta donde se creará el dense pointcloud
-		
-2. Desde la carpeta "camera_images" ejecutar:
-	colmap feature_extractor --database_path dataset.db --image_path images --ImageReader.mask_path masks --ImageReader.camera_model SIMPLE_PINHOLE --ImageReader.single_camera 1
-Si la GPU si es reconocida por el container este comando debería funcionar. Si sale error intentar agregar: --SiftExtraction.use_gpu 0
-colmap feature_extractor --database_path /working/colmap_ws/dataset.db --image_path /working/dataset_ws/images --ImageReader.mask_path /working/dataset_ws/masks --ImageReader.camera_model SIMPLE_PINHOLE --ImageReader.single_camera_per_folder 1 --ImageReader.camera_params 765.9,640.0,360.0 
-3. colmap sequential_matcher --database_path dataset.db (--SiftExtraction.use_gpu 0)
+This pipeline was designed to automate the command line flow and deliver a reconstruction using the information from the last stage. COLMAP is a very extensive tool with many functionalities and parameters (https://colmap.github.io/) and this pipeline incorporates some of the main functionalities of COLMAP allowing multi-camera reconstructions from known and unknown camera poses, different matchers and model scalators.
 
-4. colmap mapper --database_path dataset.db --image_path images --output_path sparse --image_list_path list.txt
+To use this pipeline, first set the configuration file "config_colmap.yaml" specifying all the needed parameters and then run "colmap_pipeline.py ".
 
-5. Opcional para ver PLY del sparse model: colmap model_converter --input_path sparse/0 --output_path sparse/0/sparseModel.ply --output_type PLY
-Antes de ejecutar el comando revisar si en la carpeta sparse se creó la carpeta "0" o si los archivos "images, cameras, points3D" se crearon directamente en "sparse". En ese caso borrar "/0" de la linea de comandos.
+As output, a new folder is added to the project, containing all the 3D models generated by COLMAP and files with pose data.
 
-6. colmap image_undistorter --image_path images --input_path sparse/0 --output_path dense --output_type COLMAP
+Pipeline for known camera poses:
 
-7. colmap patch_match_stereo --workspace_path dense
+Pipeline for unknown camera poses:
 
-8. colmap stereo_fusion --workspace_path dense --output_path dense/fused.ply
+(insert image with folder outputs)
 
-9. colmap poisson_mesher --input_path dense/fused.ply --output_path dense/meshed-poisson.ply
+(Add results page with real dataset and simulated dataset)
 
-9. colmap delaunay_mesher --input_path dense --output_path dense/meshed-delaunay.ply
-### Notes
-Feature extraction and sequential matching can be accelerated using GPU, and cloud densification and mesh generation can only be performed using GPU.
-An Ubuntu-ROS2 container can only run COLMAP without GPU.
-A pure colmap/colmap:latest image can´t run Dataset Generation stage
-This project should be run in an nvidia/cuda image as suggested in the COLMAP repository. This option is still being tested due to issues with the version of the GPU used in this project.
-
-## Run Project
-### Requirements
-Docker:
+## Requirements
+- Docker:
 sudo apt update
 sudo apt-get install ca-certificates curl gnupg
 sudo install -m 0755 -d /etc/apt/keyrings
@@ -81,9 +59,10 @@ echo \
 sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
--# Make sure to have nvidia driver for GPU
+-# Make sure to have nvidia driver for GPU and check with
+nvidia-smi
 
-Cuda toolkit:
+- Cuda toolkit:
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
 sudo mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
 wget https://developer.download.nvidia.com/compute/cuda/12.4.1/local_installers/cuda-repo-ubuntu2204-12-4-local_12.4.1-550.54.15-1_amd64.deb
@@ -97,7 +76,7 @@ export LD_LIBRARY_PATH=/usr/local/cuda-12.4/lib64${LD_LIBRARY_PATH:+:${LD_LIBRAR
 -# verify: nvcc --version
 
 
-Nvidia-docker toolkit:
+- Nvidia-docker toolkit:
 NVIDIA GPU/CUDA and installed drivers.
 curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
   && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
@@ -107,8 +86,8 @@ sudo apt-get update
 sudo apt-get install -y nvidia-container-toolkit
 sudo systemctl restart docker
 
-### Docker Container
-From SfM_CUDA path run:
+## Run project
+After clone the repository, run:
 
 docker build -t="colmap:cuda" .
 
@@ -138,17 +117,6 @@ docker run \
 
 GUI Troubleshooting:
 xhost +
-sudo apt-get remove libxcb-xinerama0
-sudo apt-get purge libxcb-xinerama0
-sudo apt-get install libxcb-xinerama0
-sudo apt install qtchooser
-sudo apt install libqt5gui5
-
-### Dataset generator
-Configure dataset_config.yaml (the file is the file is self-descriptive) and then run:
-python3 main_folder/dataset_generator.py 
-
-python3 main_folder/colmap_pipeline.py
 
 
 ## Contact Me
