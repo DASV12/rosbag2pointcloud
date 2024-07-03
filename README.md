@@ -1,5 +1,5 @@
-# SfM
-# (Title & Insert GIF)
+# ROS2 bag to pointcloud
+*(Insert GIF)*
 Pipeline to reconstruct a 3D structure of a scene based on a set of images from a ros2 bag.
 
 ## Overview
@@ -11,23 +11,77 @@ First stage is an Image processing pipeline where a ros2 bag is processed to ext
 The second stage is a COLMAP pipeline that takes as input the processed data of the first stage and produces a sparse point cloud with estimated camera poses and optional a dense point cloud of the scene.
 
 ## Image processing pipeline
-Rosbag expected topics and type:
-- Cameras images: sensor_msgs.msg.Image or sensor_msgs.msg.CompressedImage
-- Cameras info: sensor_msgs.msg.CameraInfo
-- GPS info: sensor_msgs.msg.NavSatFix
-- Transform info: geometry_msgs.msg.TransformStamped
+#### Rosbag expected topics and type:
+- **Cameras images:** `sensor_msgs.msg.Image` or `sensor_msgs.msg.CompressedImage`
+- **Cameras info:** `sensor_msgs.msg.CameraInfo`
+- **GPS info:** `sensor_msgs.msg.NavSatFix`
+- **Transform info:** `geometry_msgs.msg.TransformStamped`
 
-Moving objects as pedestrians, cars, etc... lead to failures in the COLMAP pipeline. To mitigate their impact, COLMAP filters regions of the images based on masks, which are created using the Ultralitic's "yolov8x-seg" segmentation model that segments people, cars, motorcicles and trucks.
+#### Masking
+Moving objects as pedestrians, cars, etc... lead to failures in the COLMAP pipeline. To mitigate their impact, COLMAP filters regions of the images based on masks, which are created using the Ultralitic's "yolov8x-seg" segmentation model that segments people, cars, motorcicles and trucks. *Make sure you have an internet connection the first time you use the repository to download the model.*
 
-(insert comparisson mask vs filtered image)
+*(insert comparisson mask vs filtered image)*
+*(insert matching images)*
 
-To use this pipeline, first set the configuration file "config_dataset.yaml" specifying all the needed parameters and then run "dataset_generator.py ".
+#### Output folders
 
-As output is obtained a folder with the undistorted images, masks and text files with pose information and lists needed for COLMAP pipeline.
+```
+colmap_ws/
+├── project_name/
+│ ├── images/
+│ │ ├── camera_1/
+│ │ │ ├── camera_1_image_0001.jpg
+│ │ │ ├── camera_1_image_0002.jpg
+│ │ │ └── ...
+│ │ ├── camera_2/
+│ │ │ ├── camera_2_image_0001.jpg
+│ │ │ ├── camera_2_image_0002.jpg
+│ │ │ └── ...
+│ │ └── ...
+│ ├── masks/
+│ │ ├── camera_1/
+│ │ │ ├── camera_1_image_0001.jpg.png
+│ │ │ ├── camera_1_image_0002.jpg.png
+│ │ │ └── ...
+│ │ ├── camera_2/
+│ │ │ ├── camera_2_image_0001.jpg.png
+│ │ │ ├── camera_2_image_0002.jpg.png
+│ │ │ └── ...
+│ │ └── ...
+│ ├── lists/
+│ │ ├── camera_1/
+│ │ │ ├── cameras.txt
+│ │ │ ├── images.txt
+│ │ │ ├── points3D.txt
+│ │ │ ├── tf_data.txt
+│ │ │ ├── gps_data.txt
+│ │ │ ├── image_list.txt
+│ │ │ ├── image_list_original.txt
+│ │ ├── camera_2/
+│ │ │ ├── cameras.txt
+│ │ │ ├── images.txt
+│ │ │ ├── points3D.txt
+│ │ │ ├── tf_data.txt
+│ │ │ ├── gps_data.txt
+│ │ │ ├── image_list.txt
+│ │ │ ├── image_list_original.txt
+│ │ └── ...
 
-(insert image with folder output)
+```
+#### Output images
+*(insert comparisson original vs undistorted image)*
 
-Recording recomendations:
+In this stage all images are undistorted and contains the next information in their metadata:
+- Size: height x width
+- Focal length (mm)
+- Rosbag time (s)
+- GPS data: Latitude, longitude & altitude or (x,y) in meters from `tf` map frame.
+
+#### Usage Instructions
+To use this pipeline, first set the configuration file `config_dataset.yaml` specifying all the needed parameters and then run `dataset_generator.py`.
+
+#### Recording recomendations:
+
 
 ## COLMAP pipeline
 This pipeline was designed to automate the command line flow and deliver a reconstruction using the information from the last stage. COLMAP is a very extensive tool with many functionalities and parameters (https://colmap.github.io/) and this pipeline incorporates some of the main functionalities of COLMAP allowing multi-camera reconstructions from known and unknown camera poses, different matchers and model scalators.
@@ -42,7 +96,7 @@ Pipeline for unknown camera poses:
 
 (insert image with folder outputs)
 
-(Add results page with real dataset and simulated dataset)
+
 
 ## Requirements
 - Docker:
@@ -118,6 +172,8 @@ docker run \
 GUI Troubleshooting:
 xhost +
 
+## Conclusions
+reconstructions: (Add results page with real dataset and simulated dataset)
 
 ## Contact Me
 https://www.linkedin.com/in/dasv1298/
