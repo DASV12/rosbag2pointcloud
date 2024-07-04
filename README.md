@@ -78,6 +78,10 @@ colmap_ws/
 ```
 #### Output images
 *(insert comparisson original vs undistorted image)*
+<p float="left">
+  <img src="main_folder/images/distorted.jpg" width="400" />
+  <img src="main_folder/images/undistorted.jpg" width="400" /> 
+</p>
 
 In this stage all images are undistorted and saved with the next information in their metadata:
 - Size: height x width
@@ -100,6 +104,7 @@ In this stage all images are undistorted and saved with the next information in 
 - Maintain a constant robot speed.
 - Manage robot speed and recording frequency to ensure data (Images, tf & GPS) synchronisation and overlapping of images.
 - Single line recording path is not desirable for georeferencing.
+- Get accurate intrinsics and extrinsics.
 
 </details>
 
@@ -137,7 +142,7 @@ colmap_ws/
 
 ```
 <details>
-<summary>Sparse pointcloud generation pipeline (/tf)</summary>
+<summary>Sparse pointcloud generation pipeline (/tf)</summary>\
 
 Initial pose of cameras given by (/tf).
 1. Feature extraction
@@ -151,7 +156,7 @@ Initial pose of cameras given by (/tf).
 </details>
 
 <details>
-<summary>Sparse pointcloud generation pipeline (GPS)</summary>
+<summary>Sparse pointcloud generation pipeline (GPS)</summary>\
 
 Triangulated cameras pose.
 1. Feature extraction
@@ -159,13 +164,13 @@ Triangulated cameras pose.
 3. image_list.txt reading
 4. Mapper
 5. Model Geo-registration/scaling
-6. Sparse model (PLY generation)
+6. Sparse model (PLY) generation
 7. Cameras pose extraction
 
 </details>
 
 <details>
-<summary>Dense pointcloud generation pipeline</summary>
+<summary>Dense pointcloud generation pipeline</summary>\
 
 1. Image undistorter
 2. Patch match stereo
@@ -273,12 +278,21 @@ docker run \
 ```
 <details>
 <summary> GUI Troubleshooting </summary>
+
 ```
 xhost +
 ```
+
 </details>
+
 ## Conclusions
 reconstructions: (Add results page with real dataset and simulated dataset)
+errores en las mascaras
+
+## Future work
+Use the reconstruction and images to train a model for autonomous navigation.
+Explore alternatives for densification and voxelization
+Add images to an existing sparse model
 
 ## Contact Me
 https://www.linkedin.com/in/dasv1298/

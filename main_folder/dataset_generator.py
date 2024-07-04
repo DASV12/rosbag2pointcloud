@@ -1371,7 +1371,7 @@ def main(
         #"/tf"
     ],
     fps: int = 10,
-    undistort: bool = True,
+    undistort: bool = False,
     debug: bool = False,
     imshow: bool = False,
     #delta_sync: float = 0.1,
