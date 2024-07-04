@@ -78,12 +78,14 @@ colmap_ws/
 ```
 #### Output images
 
-<!-- <p float="left">
+<p float="left">
   <img src="main_folder/images/distorted.jpg" width="400" />
   <img src="main_folder/images/undistorted.jpg" width="400" /> 
-</p> -->
+  <br />
+  <em>Distorted image vs Undistorted image</em>
+</p>
 
-<p float="left">
+<!-- <p float="left">
   <img src="main_folder/images/distorted.jpg" width="400" />
   <br />
   <em>Distorted image</em>
@@ -93,7 +95,7 @@ colmap_ws/
   <img src="main_folder/images/undistorted.jpg" width="400" /> 
   <br />
   <em>Undistorted image</em>
-</p>
+</p> -->
 
 In this stage all images are undistorted and saved with the next information in their metadata:
 - Size: height x width
