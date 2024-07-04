@@ -4,7 +4,8 @@
 *.jpeg
 *.gif
 *.bmp
-
+!distorted.jpg
+!undistorted.jpg
 # Ignorar rosbags y pointclouds
 *.mcap
 *.laz
