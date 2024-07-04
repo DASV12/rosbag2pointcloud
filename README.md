@@ -79,18 +79,18 @@ colmap_ws/
 #### Output images
 *(insert comparisson original vs undistorted image)*
 
-In this stage all images are undistorted and contains the next information in their metadata:
+In this stage all images are undistorted and saved with the next information in their metadata:
 - Size: height x width
 - Focal length (mm)
 - Rosbag time (s)
 - GPS data: Latitude, longitude & altitude or (x,y) in meters from `/tf` map frame.
 
 #### Usage Instructions
-To use this pipeline, first set the configuration file `config_dataset.yaml` specifying all the needed parameters and then run `dataset_generator.py`.
+To use this pipeline, first set the configuration file `config_dataset.yaml` [config_dataset.yaml](main_folder/config_dataset.yaml) specifying all the needed parameters and then run `dataset_generator.py`.
 
 #### Dataset recording recomendations:
 <details>
-<summary>Show the list of recomendations</summary>
+<summary><b>Dataset recording recomendations</b></summary>
 
 - Take the images in an illuminated environment.
 - The higher the resolution of the images, the more detailed the reconstruction will be.
@@ -140,8 +140,9 @@ colmap_ws/
 
 ```
 <details>
-<summary> *Known camera poses (/tf) pipeline:* </summary>
+<summary>Sparse pointcloud generation pipeline (/tf)</summary>
 
+Initial pose of cameras given by (/tf).
 1. Feature extraction
 2. Feature matcher
 3. image_list.txt reading
@@ -153,8 +154,9 @@ colmap_ws/
 </details>
 
 <details>
-<summary> *Unknown camera poses (GPS) pipeline:* </summary>
+<summary>Sparse pointcloud generation pipeline (GPS)</summary>
 
+Triangulated cameras pose.
 1. Feature extraction
 2. Feature matcher
 3. image_list.txt reading
@@ -166,7 +168,7 @@ colmap_ws/
 </details>
 
 <details>
-<summary> *Dense pointclouyd generation pipeline:* </summary>
+<summary>Dense pointcloud generation pipeline</summary>
 
 1. Image undistorter
 2. Patch match stereo
@@ -269,10 +271,12 @@ docker run \
     -it colmap:cuda \
     - colmap gui
 ```
-GUI Troubleshooting:
+<details>
+<summary> GUI Troubleshooting </summary>
 ```
 xhost +
 ```
+</details>
 ## Conclusions
 reconstructions: (Add results page with real dataset and simulated dataset)
 
