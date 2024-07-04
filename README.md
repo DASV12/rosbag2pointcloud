@@ -85,10 +85,6 @@ In this stage all images are undistorted and saved with the next information in 
 - Rosbag time (s)
 - GPS data: Latitude, longitude & altitude or (x,y) in meters from `/tf` map frame.
 
-#### Usage Instructions
-To use this pipeline, first set the configuration file `[config_dataset.yaml](main_folder/config_dataset.yaml)` specifying all the needed parameters and then run `dataset_generator.py`.
-
-#### Dataset recording recomendations:
 <details>
 <summary><b>Dataset recording recomendations</b></summary>
 
@@ -107,10 +103,11 @@ To use this pipeline, first set the configuration file `[config_dataset.yaml](ma
 
 </details>
 
+#### Usage Instructions
+To use this pipeline, first set the configuration file [config_dataset.yaml](main_folder/config_dataset.yaml) specifying all the needed parameters and then run [dataset_generator.py](main_folder/dataset_generator.py).
+
 ## COLMAP pipeline
 This pipeline was designed to automate the command line flow and deliver a reconstruction using the information from the first stage. [COLMAP](https://colmap.github.io/) is a very extensive tool with many functionalities and parameters. This pipeline incorporates some of its main functionalities, allowing multi-camera reconstructions from known and unknown camera poses, different matchers and model scalators.
-#### Usage Instructions
-To use this pipeline, first set the configuration file `config_colmap.yaml` specifying all the needed parameters and then run `colmap_pipeline.py`.
 
 #### Output folders
 
@@ -176,6 +173,9 @@ Triangulated cameras pose.
 4. Poisson mesher / Delaunay mesher
 
 </details>
+
+#### Usage Instructions
+To use this pipeline, first set the configuration file [config_colmap.yaml](main_folder/config_colmap.yaml) specifying all the needed parameters and then run [colmap_pipeline.py](main_folder/colmap_pipeline.py).
 
 ## Requirements
 
