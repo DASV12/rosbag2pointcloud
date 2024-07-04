@@ -176,7 +176,10 @@ colmap_ws/
 </details>
 
 ## Requirements
-#### Docker
+
+<details>
+<summary> <b>Docker</b> </summary>
+
 ```
 sudo apt update
 sudo apt-get install ca-certificates curl gnupg
@@ -191,6 +194,9 @@ echo \
 sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
+
+</details>
+
 #### Nvidia driver
 Make sure to have the nvidia driver for GPU and check with:
 ```
