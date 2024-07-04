@@ -197,13 +197,18 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 
 </details>
 
-#### Nvidia driver
+<details>
+<summary> <b>Nvidia driver</b> </summary>
 Make sure to have the nvidia driver for GPU and check with:
 ```
 nvidia-smi
 ```
 
-#### Cuda toolkit
+</details>
+
+<details>
+<summary> <b>Cuda toolkit</b> </summary>
+
 ```
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
 sudo mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
@@ -219,7 +224,11 @@ export LD_LIBRARY_PATH=/usr/local/cuda-12.4/lib64${LD_LIBRARY_PATH:+:${LD_LIBRAR
 # verify: nvcc --version
 ```
 
-#### Nvidia-docker toolkit:
+</details>
+
+<details>
+<summary> <b>Nvidia-docker toolkit</b> </summary>
+
 ```
 curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
   && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
@@ -229,6 +238,8 @@ sudo apt-get update
 sudo apt-get install -y nvidia-container-toolkit
 sudo systemctl restart docker
 ```
+
+</details>
 
 ## Run project
 Build the docker file:
