@@ -77,10 +77,22 @@ colmap_ws/
 
 ```
 #### Output images
-*(insert comparisson original vs undistorted image)*
-<p float="left">
+
+<!-- <p float="left">
   <img src="main_folder/images/distorted.jpg" width="400" />
   <img src="main_folder/images/undistorted.jpg" width="400" /> 
+</p> -->
+
+<p float="left">
+  <img src="main_folder/images/distorted.jpg" width="400" />
+  <br />
+  <em>Distorted image</em>
+</p>
+
+<p float="left">
+  <img src="main_folder/images/undistorted.jpg" width="400" /> 
+  <br />
+  <em>Undistorted image</em>
 </p>
 
 In this stage all images are undistorted and saved with the next information in their metadata:
