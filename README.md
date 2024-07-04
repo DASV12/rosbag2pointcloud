@@ -86,7 +86,7 @@ In this stage all images are undistorted and saved with the next information in 
 - GPS data: Latitude, longitude & altitude or (x,y) in meters from `/tf` map frame.
 
 #### Usage Instructions
-To use this pipeline, first set the configuration file `config_dataset.yaml` [config_dataset.yaml](main_folder/config_dataset.yaml) specifying all the needed parameters and then run `dataset_generator.py`.
+To use this pipeline, first set the configuration file `[config_dataset.yaml](main_folder/config_dataset.yaml)` specifying all the needed parameters and then run `dataset_generator.py`.
 
 #### Dataset recording recomendations:
 <details>
