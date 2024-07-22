@@ -6,6 +6,7 @@
 *.bmp
 !distorted.jpg
 !undistorted.jpg
+!sparse_plus_path.png
 # Ignorar rosbags y pointclouds
 *.mcap
 *.laz
