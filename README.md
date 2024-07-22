@@ -2,7 +2,7 @@
 ### Pipeline to reconstruct a 3D structure of a scene based on a set of images from a ros2 bag.
 
 ![Mesh reconstruction](main_folder/images/meshed_GT.gif)
-Mesh reconstruction.
+Mesh reconstruction vs Ground Truth.
 
 <figure>
   <img src="main_folder/images/sparse_plus_path.png" alt="Sparse reconstruction">
