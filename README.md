@@ -1,17 +1,13 @@
 # ROS2 bag to pointcloud
 ### Pipeline to reconstruct a 3D structure of a scene based on a set of images from a ros2 bag.
-<!-- ![Sparse reconstruction](main_folder/images/sparse_plus_path.png "Sparse reconstruction + camera path") -->
+
+![Mesh reconstruction](main_folder/images/meshed_GT.gif)
+Mesh reconstruction.
+
 <figure>
   <img src="main_folder/images/sparse_plus_path.png" alt="Sparse reconstruction">
   <figcaption>Sparse reconstruction + camera path.</figcaption>
 </figure>
-<!-- <figure>
-  <img src="main_folder/images/meshed_GT.gif" alt="Mesh reconstruction">
-  <figcaption>Mesh reconstruction.</figcaption>
-</figure> -->
-
-![Mesh reconstruction](main_folder/images/meshed_GT.gif)
-Mesh reconstruction.
 
 ## Overview
 Structure from Motion (SfM) is a technique used to reconstruct the 3D structure of a scene from a set of 2D images captured from different viewpoints. COLMAP is a SfM pipeline with command-line interface and features for reconstruction of images collections.\
