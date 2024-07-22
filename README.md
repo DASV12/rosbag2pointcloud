@@ -66,6 +66,66 @@ In this stage all images are undistorted and saved with the next information in 
 
 </details>
 
+#### Masking
+Moving objects as pedestrians, cars, etc... lead to failures in the COLMAP pipeline. To mitigate their impact, COLMAP filters regions of the images based on masks, which are created using the Ultralitic's "yolov8x-seg" segmentation model that segments people, cars, motorcicles and trucks. *(Make sure you have an internet connection the first time you use the repository to download the model.)*
+
+<p float="left">
+  <img src="main_folder/images/keypoints_mask.jpg.png" width="400" />
+  <img src="main_folder/images/keypoints.png" width="400" /> 
+  <br />
+  <em>Mask vs filtered image</em>
+</p>
+
+![Filtered matching](main_folder/images/matches.png)
+Filtered matching.
+
+
+#### Output folders
+
+```
+colmap_ws/
+├── project_name/
+│ ├── images/
+│ │ ├── camera_1/
+│ │ │ ├── camera_1_image_0001.jpg
+│ │ │ ├── camera_1_image_0002.jpg
+│ │ │ └── ...
+│ │ ├── camera_2/
+│ │ │ ├── camera_2_image_0001.jpg
+│ │ │ ├── camera_2_image_0002.jpg
+│ │ │ └── ...
+│ │ └── ...
+│ ├── masks/
+│ │ ├── camera_1/
+│ │ │ ├── camera_1_image_0001.jpg.png
+│ │ │ ├── camera_1_image_0002.jpg.png
+│ │ │ └── ...
+│ │ ├── camera_2/
+│ │ │ ├── camera_2_image_0001.jpg.png
+│ │ │ ├── camera_2_image_0002.jpg.png
+│ │ │ └── ...
+│ │ └── ...
+│ ├── lists/
+│ │ ├── camera_1/
+│ │ │ ├── cameras.txt
+│ │ │ ├── images.txt
+│ │ │ ├── points3D.txt
+│ │ │ ├── tf_data.txt
+│ │ │ ├── gps_data.txt
+│ │ │ ├── image_list.txt
+│ │ │ ├── image_list_original.txt
+│ │ ├── camera_2/
+│ │ │ ├── cameras.txt
+│ │ │ ├── images.txt
+│ │ │ ├── points3D.txt
+│ │ │ ├── tf_data.txt
+│ │ │ ├── gps_data.txt
+│ │ │ ├── image_list.txt
+│ │ │ ├── image_list_original.txt
+│ │ └── ...
+
+```
+
 #### Usage Instructions
 To use this pipeline, first set the configuration file [config_dataset.yaml](main_folder/config_dataset.yaml) specifying all the needed parameters and then run [dataset_generator.py](main_folder/dataset_generator.py).
 
@@ -136,66 +196,6 @@ Triangulated cameras pose.
 4. Poisson mesher / Delaunay mesher
 
 </details>
-
-#### Masking
-Moving objects as pedestrians, cars, etc... lead to failures in the COLMAP pipeline. To mitigate their impact, COLMAP filters regions of the images based on masks, which are created using the Ultralitic's "yolov8x-seg" segmentation model that segments people, cars, motorcicles and trucks. *(Make sure you have an internet connection the first time you use the repository to download the model.)*
-
-<p float="left">
-  <img src="main_folder/images/keypoints_mask.jpg.png" width="400" />
-  <img src="main_folder/images/keypoints.png" width="400" /> 
-  <br />
-  <em>Mask vs filtered image</em>
-</p>
-
-![Filtered matching](main_folder/images/matches.png)
-Filtered matching.
-
-
-#### Output folders
-
-```
-colmap_ws/
-├── project_name/
-│ ├── images/
-│ │ ├── camera_1/
-│ │ │ ├── camera_1_image_0001.jpg
-│ │ │ ├── camera_1_image_0002.jpg
-│ │ │ └── ...
-│ │ ├── camera_2/
-│ │ │ ├── camera_2_image_0001.jpg
-│ │ │ ├── camera_2_image_0002.jpg
-│ │ │ └── ...
-│ │ └── ...
-│ ├── masks/
-│ │ ├── camera_1/
-│ │ │ ├── camera_1_image_0001.jpg.png
-│ │ │ ├── camera_1_image_0002.jpg.png
-│ │ │ └── ...
-│ │ ├── camera_2/
-│ │ │ ├── camera_2_image_0001.jpg.png
-│ │ │ ├── camera_2_image_0002.jpg.png
-│ │ │ └── ...
-│ │ └── ...
-│ ├── lists/
-│ │ ├── camera_1/
-│ │ │ ├── cameras.txt
-│ │ │ ├── images.txt
-│ │ │ ├── points3D.txt
-│ │ │ ├── tf_data.txt
-│ │ │ ├── gps_data.txt
-│ │ │ ├── image_list.txt
-│ │ │ ├── image_list_original.txt
-│ │ ├── camera_2/
-│ │ │ ├── cameras.txt
-│ │ │ ├── images.txt
-│ │ │ ├── points3D.txt
-│ │ │ ├── tf_data.txt
-│ │ │ ├── gps_data.txt
-│ │ │ ├── image_list.txt
-│ │ │ ├── image_list_original.txt
-│ │ └── ...
-
-```
 
 #### Usage Instructions
 To use this pipeline, first set the configuration file [config_colmap.yaml](main_folder/config_colmap.yaml) specifying all the needed parameters and then run [colmap_pipeline.py](main_folder/colmap_pipeline.py).
