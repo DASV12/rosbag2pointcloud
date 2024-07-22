@@ -45,7 +45,6 @@ Moving objects as pedestrians, cars, etc... lead to failures in the COLMAP pipel
 ![Filtered matching](main_folder/images/matches.png)
 Filtered matching.
 
-*(insert matching images)*
 
 #### Output folders
 
@@ -306,7 +305,7 @@ xhost +
 ## Conclusions
 Section still in process
 reconstructions: (Add results page with real dataset and simulated dataset)
-errores en las mascaras
+masks errors.
 
 ## Future work
 Section still in process
