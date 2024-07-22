@@ -4,7 +4,13 @@
 *.jpeg
 *.gif
 *.bmp
-
+!distorted.jpg
+!undistorted.jpg
+!sparse_plus_path.png
+!meshed_GT.gif
+!keypoints.png
+!keypoints_mask.jpg.png
+!matches.png
 # Ignorar rosbags y pointclouds
 *.mcap
 *.laz
