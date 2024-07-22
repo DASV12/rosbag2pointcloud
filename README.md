@@ -5,6 +5,10 @@
   <img src="main_folder/images/sparse_plus_path.png" alt="Sparse reconstruction">
   <figcaption>Sparse reconstruction + camera path.</figcaption>
 </figure>
+<figure>
+  <img src="main_folder/images/meshed_GT.gif" alt="Mesh reconstruction">
+  <figcaption>Mesh reconstruction.</figcaption>
+</figure>
 
 
 ## Overview
