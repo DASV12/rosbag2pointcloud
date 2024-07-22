@@ -1,6 +1,10 @@
 # ROS2 bag to pointcloud
 ### Pipeline to reconstruct a 3D structure of a scene based on a set of images from a ros2 bag.
-![Sparse reconstruction](main_folder/images/sparse_plus_path.png "Sparse reconstructino + camera path")\
+<!-- ![Sparse reconstruction](main_folder/images/sparse_plus_path.png "Sparse reconstruction + camera path") -->
+<figure>
+  <img src="main_folder/images/sparse_plus_path.png" alt="Sparse reconstruction">
+  <figcaption>Sparse reconstruction + camera path.</figcaption>
+</figure>
 
 
 ## Overview
