@@ -42,6 +42,8 @@ Moving objects as pedestrians, cars, etc... lead to failures in the COLMAP pipel
   <em>Mask vs filtered image</em>
 </p>
 
+![Filtered matching](main_folder/images/matches.png)
+Filtered matching.
 
 *(insert matching images)*
 

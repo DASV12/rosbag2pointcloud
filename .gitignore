@@ -10,6 +10,7 @@
 !meshed_GT.gif
 !keypoints.png
 !keypoints_mask.jpg.png
+!matches.png
 # Ignorar rosbags y pointclouds
 *.mcap
 *.laz
