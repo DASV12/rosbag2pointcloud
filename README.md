@@ -37,7 +37,7 @@ Moving objects as pedestrians, cars, etc... lead to failures in the COLMAP pipel
 
 <p float="left">
   <img src="main_folder/images/keypoints_mask.jpg.png" width="400" />
-  <img src="main_folder/images/keypoints.jpg" width="400" /> 
+  <img src="main_folder/images/keypoints.png" width="400" /> 
   <br />
   <em>Mask vs filtered image</em>
 </p>
