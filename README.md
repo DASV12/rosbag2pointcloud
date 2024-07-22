@@ -1,5 +1,5 @@
 # ROS2 bag to pointcloud
-*(Insert GIF)*
+![Sparse reconstruction](main_folder/images/sparse_plus_path.png "")\
 Pipeline to reconstruct a 3D structure of a scene based on a set of images from a ros2 bag.
 
 ## Overview
@@ -28,7 +28,7 @@ This project consists of 2 stages:
 #### Masking
 Moving objects as pedestrians, cars, etc... lead to failures in the COLMAP pipeline. To mitigate their impact, COLMAP filters regions of the images based on masks, which are created using the Ultralitic's "yolov8x-seg" segmentation model that segments people, cars, motorcicles and trucks. *(Make sure you have an internet connection the first time you use the repository to download the model.)*
 
-*(insert comparisson mask vs filtered image)*
+*(insert comparisson mask 857 & 246/45 vs filtered image)*\
 *(insert matching images)*
 
 #### Output folders
@@ -85,22 +85,10 @@ colmap_ws/
   <em>Distorted image vs Undistorted image</em>
 </p>
 
-<!-- <p float="left">
-  <img src="main_folder/images/distorted.jpg" width="400" />
-  <br />
-  <em>Distorted image</em>
-</p>
-
-<p float="left">
-  <img src="main_folder/images/undistorted.jpg" width="400" /> 
-  <br />
-  <em>Undistorted image</em>
-</p> -->
-
 In this stage all images are undistorted and saved with the next information in their metadata:
 - Size: height x width
 - Focal length (mm)
-- Rosbag time (s)
+- Rosbag recording time (s)
 - GPS data: Latitude, longitude & altitude or (x,y) in meters from `/tf` map frame.
 
 <details>
@@ -300,10 +288,12 @@ xhost +
 </details>
 
 ## Conclusions
+Section still in process
 reconstructions: (Add results page with real dataset and simulated dataset)
 errores en las mascaras
 
 ## Future work
+Section still in process
 Use the reconstruction and images to train a model for autonomous navigation.
 Explore alternatives for densification and voxelization
 Add images to an existing sparse model
