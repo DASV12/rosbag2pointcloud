@@ -35,7 +35,14 @@ This project consists of 2 stages:
 #### Masking
 Moving objects as pedestrians, cars, etc... lead to failures in the COLMAP pipeline. To mitigate their impact, COLMAP filters regions of the images based on masks, which are created using the Ultralitic's "yolov8x-seg" segmentation model that segments people, cars, motorcicles and trucks. *(Make sure you have an internet connection the first time you use the repository to download the model.)*
 
-*(insert comparisson mask 857 & 246/45 vs filtered image)*\
+<p float="left">
+  <img src="main_folder/images/keypoints_mask.jpg.png" width="400" />
+  <img src="main_folder/images/keypoints.jpg" width="400" /> 
+  <br />
+  <em>Mask vs filtered image</em>
+</p>
+
+
 *(insert matching images)*
 
 #### Output folders
