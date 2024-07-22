@@ -7,7 +7,7 @@
 !distorted.jpg
 !undistorted.jpg
 !sparse_plus_path.png
-!mesh_GT.gif
+!meshed_GT.gif
 # Ignorar rosbags y pointclouds
 *.mcap
 *.laz
