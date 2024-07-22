@@ -32,6 +32,40 @@ This project consists of 2 stages:
     - **msg type:** `tf2_msgs.msg.TFMessage`.
     - **Topic name:** `/tf/odom`, `/tf/base_link`, `/tf/inertial_link`.
 
+#### Output images
+
+<p float="left">
+  <img src="main_folder/images/distorted.jpg" width="400" />
+  <img src="main_folder/images/undistorted.jpg" width="400" /> 
+  <br />
+  <em>Distorted image vs Undistorted image</em>
+</p>
+
+In this stage all images are undistorted and saved with the next information in their metadata:
+- Size: height x width
+- Focal length (mm)
+- Rosbag recording time (s)
+- GPS data: Latitude, longitude & altitude or (x,y) in meters from `/tf` map frame.
+
+<details>
+<summary><b>Dataset recording recomendations</b></summary>
+
+- Take the images in an illuminated environment.
+- The higher the resolution of the images, the more detailed the reconstruction will be.
+- Maintain about 10 meters from camera to objects.
+- Take images perpendicular to the object of interest, vanishing points are not good for reconstructions.
+- Avoid moving objects.
+- Images taken from a single camera must have sufficient visual overlap (>60%).
+- If recorded with multiple cameras, cameras must have sufficient visual overlap (>60%).
+- If possible, close the recording path cycle.
+- Rotations on the same axis are not desirable.
+- Maintain a constant robot speed.
+- Manage robot speed and recording frequency to ensure data (Images, tf & GPS) synchronisation and overlapping of images.
+- Single line recording path is not desirable for georeferencing.
+- Get accurate intrinsics and extrinsics.
+
+</details>
+
 #### Masking
 Moving objects as pedestrians, cars, etc... lead to failures in the COLMAP pipeline. To mitigate their impact, COLMAP filters regions of the images based on masks, which are created using the Ultralitic's "yolov8x-seg" segmentation model that segments people, cars, motorcicles and trucks. *(Make sure you have an internet connection the first time you use the repository to download the model.)*
 
@@ -91,39 +125,6 @@ colmap_ws/
 │ │ └── ...
 
 ```
-#### Output images
-
-<p float="left">
-  <img src="main_folder/images/distorted.jpg" width="400" />
-  <img src="main_folder/images/undistorted.jpg" width="400" /> 
-  <br />
-  <em>Distorted image vs Undistorted image</em>
-</p>
-
-In this stage all images are undistorted and saved with the next information in their metadata:
-- Size: height x width
-- Focal length (mm)
-- Rosbag recording time (s)
-- GPS data: Latitude, longitude & altitude or (x,y) in meters from `/tf` map frame.
-
-<details>
-<summary><b>Dataset recording recomendations</b></summary>
-
-- Take the images in an illuminated environment.
-- The higher the resolution of the images, the more detailed the reconstruction will be.
-- Maintain about 10 meters from camera to objects.
-- Take images perpendicular to the object of interest, vanishing points are not good for reconstructions.
-- Avoid moving objects.
-- Images taken from a single camera must have sufficient visual overlap (>60%).
-- If recorded with multiple cameras, cameras must have sufficient visual overlap (>60%).
-- If possible, close the recording path cycle.
-- Rotations on the same axis are not desirable.
-- Maintain a constant robot speed.
-- Manage robot speed and recording frequency to ensure data (Images, tf & GPS) synchronisation and overlapping of images.
-- Single line recording path is not desirable for georeferencing.
-- Get accurate intrinsics and extrinsics.
-
-</details>
 
 #### Usage Instructions
 To use this pipeline, first set the configuration file [config_dataset.yaml](main_folder/config_dataset.yaml) specifying all the needed parameters and then run [dataset_generator.py](main_folder/dataset_generator.py).
